@@ -1,1 +1,1 @@
-go run main.go > out.txt
+go run main.go generate.go > out.txt

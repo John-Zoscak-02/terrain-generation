@@ -1,4 +1,4 @@
-module terrain-generation.com/main
+module terrain-generation
 
 go 1.18
 
