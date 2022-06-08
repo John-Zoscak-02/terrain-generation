@@ -7,15 +7,17 @@ import (
 	"github.com/g3n/engine/camera"
 	"github.com/g3n/engine/core"
 	"github.com/g3n/engine/gls"
+	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/gui"
 	"github.com/g3n/engine/light"
+	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/renderer"
 	"github.com/g3n/engine/window"
 )
 
-const TERRAIN_WIDTH = 50
-const TERRAIN_HEIGHT = 50
+const TERRAIN_WIDTH = 100
+const TERRAIN_HEIGHT = 100
 
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 7
@@ -78,13 +80,23 @@ func main() {
 
 	xb := Bounds{-TERRAIN_WIDTH / 2, TERRAIN_WIDTH / 2}
 	yb := Bounds{-TERRAIN_HEIGHT / 2, TERRAIN_HEIGHT / 2}
-	board1.renderGl(scene, xb, yb)
+	geom := board1.GenerateSurfaceGeometry(xb, yb)
+	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	mat.SetOpacity(1)
+	mesh := graphic.NewMesh(geom, mat)
+	scene.Add(mesh)
 
 	// Create and add lights to the scene
-	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 1.0))
-	pointLight := light.NewPoint(&math32.Color{1, 1, 1}, 5.0)
-	pointLight.SetPosition(2, 0, 4)
-	scene.Add(pointLight)
+	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.5))
+	light := light.NewPoint(&math32.Color{1, 1, 1}, 5)
+	light.SetPositionVec(math32.NewVector3(-8, 10, 8))
+	light.SetLinearDecay(0.2)
+	light.SetQuadraticDecay(0)
+	scene.Add(light)
+	//pointLight2 := light.NewPoint(&math32.Color{0.8, 0.8, 0.8}, 10)
+	//pointLight2.SetPosition(4, -5, 3)
+	//pointLight2.SetQuadraticDecay(0.2)
+	//scene.Add(pointLight2)
 
 	// Set background color to gray
 	a.Gls().ClearColor(0.3, 0.3, 0.3, 1.0)

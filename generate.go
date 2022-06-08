@@ -6,10 +6,8 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/g3n/engine/core"
 	"github.com/g3n/engine/geometry"
-	"github.com/g3n/engine/graphic"
-	"github.com/g3n/engine/material"
+	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/math32"
 )
 
@@ -115,20 +113,61 @@ func (board *Board) renderArr(heights *[][]uint8) {
 	}
 }
 
-func (board *Board) renderGl(scene *core.Node, xBounds, yBounds Bounds) *core.Node {
+func (board *Board) GenerateSurfaceGeometry(xBounds, yBounds Bounds) *geometry.Geometry {
 	incY := float32(board.yBounds.size()) / float32(yBounds.size())
 	incX := float32(board.xBounds.size()) / float32(xBounds.size())
+	positions := math32.NewArrayF32(0, yBounds.size()*xBounds.size())
+	indices := math32.NewArrayU32(0, (yBounds.size()-1)*(xBounds.size()-1)*2)
+	index := uint32(0)
 	for y := float32(board.yBounds.lower); y <= float32(board.yBounds.upper); y += incY {
 		for x := float32(board.xBounds.lower); x <= float32(board.xBounds.upper); x += incX {
 			height := float32((perlinNoise(*board, float64(x), float64(y)) + 1.5))
-			geom := geometry.NewBox(incY, incY, height)
-			mat := material.NewStandard(math32.NewColor("darkgreen"))
-			mesh := graphic.NewMesh(geom, mat)
-			mesh.SetPositionVec(math32.NewVector3(x, y, height/2))
-			scene.Add(mesh)
+			//geom := geometry.NewBox(incY, incY, height)
+			//mat := material.NewStandard(math32.NewColor("darkgreen"))
+			//mesh := graphic.NewMesh(geom, mat)
+			//mesh.SetPositionVec(math32.NewVector3(x, y, height/2))
+			//scene.Add(mesh)
+			positions.Append(x, y, height, 0, 0, 1)
+			if x+incX <= float32(board.xBounds.upper) && y+incY <= float32(board.yBounds.upper) {
+				indices.Append(index, index+1+uint32(float32(board.xBounds.size())/incX)+1, index+uint32(float32(board.xBounds.size())/incX)+1)
+				//indices.Append(index, index+1, index+1+uint32(float32(board.xBounds.size())/incX)+1)
+			}
+			index++
 		}
 	}
-	return scene
+	geom := geometry.NewGeometry()
+	geom.SetIndices(indices)
+	geom.AddVBO(gls.NewVBO(positions).
+		AddAttrib(gls.VertexPosition).
+		AddAttrib(gls.VertexNormal),
+	)
+
+	return geom
+	//return scene
+}
+
+func GenerateStackedSurfaceGeometry(board1, board2 Board, xBounds, yBounds Bounds, prop float32) *geometry.Geometry {
+	incY1 := float32(board1.yBounds.size()) / float32(yBounds.size())
+	incX1 := float32(board1.xBounds.size()) / float32(xBounds.size())
+	incY2 := float32(board2.yBounds.size()) / float32(yBounds.size())
+	incX2 := float32(board2.xBounds.size()) / float32(xBounds.size())
+
+	positions := math32.NewArrayF32(0, yBounds.size()*xBounds.size())
+	indices := math32.NewArrayU32(0, (yBounds.size()-1)*(xBounds.size()-1)*2)
+	index := uint32(0)
+
+	for y1, y2 := float32(board1.yBounds.lower), float32(board2.yBounds.lower); y1 <= float32(board1.yBounds.upper); y1, y2 = y1+incY1, y2+incY2 {
+		for x1, x2 := float32(board1.xBounds.lower), float32(board2.xBounds.lower); x1 <= float32(board1.xBounds.upper); x1, x2 = x1+incX1, x2+incX2 {
+			height1 := float32((perlinNoise(board1, float64(x1), float64(y1)) + 1.5) * prop)
+			height2 := float32((perlinNoise(board2, float64(x2), float64(y2)) + 1.5) * (1 - prop))
+			positions.Append(x1, y1, height1+height2, 0, 0, 1)
+			if x1+incX1 <= float32(board1.xBounds.upper) && y1+incY1 <= float32(board1.yBounds.upper) {
+				indices.Append(index, index+1+uint32(float32(board1.xBounds.size())/incX1)+1, index+uint32(float32(board1.xBounds.size())/incX1)+1)
+				//indices.Append(index, index+1, index+1+uint32(float32(board.xBounds.size())/incX)+1)
+			}
+			index++
+		}
+	}
 }
 
 ////////////////////
