@@ -22,33 +22,19 @@ const TERRAIN_HEIGHT = 100
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 7
 const GRADIENT_HEIGHT_B1 = 7
-const GRADIENT_WIDTH_B2 = 13
-const GRADIENT_HEIGHT_B2 = 13
+const GRADIENT_WIDTH_B2 = 17
+const GRADIENT_HEIGHT_B2 = 17
+
+const M = 1.2
+const PROPORTION = 0.85
 const SEED_1 = 43
-const SEED_2 = 37
+const SEED_2 = 97
 
 func main() {
 	var board1 Board
-	//var board2 Board
+	var board2 Board
 	board1.initialize(GRADIENT_WIDTH_B1, GRADIENT_HEIGHT_B1, SEED_1)
-	//board2.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
-
-	//////////////////////////////////
-	// ========== Test 1 ========== //
-	//////////////////////////////////
-
-	//img1 := image.NewRGBA(image.Rect(-TERRAIN_WIDTH/2, -TERRAIN_HEIGHT/2, TERRAIN_WIDTH/2, TERRAIN_HEIGHT/2))
-	//stackedRenderImg(board1, board2, img1, 0.75)
-	//imgFile1, err1 := os.Create("img/terrain3.png")
-	//if err1 != nil {
-	//	fmt.Println("Cannot create file: ", err1)
-	//}
-	//png.Encode(imgFile1, img1.SubImage(img1.Rect))
-	//imgFile1.Close()
-
-	//////////////////////////////////
-	// ========== Test 2 ========== //
-	//////////////////////////////////
+	board2.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
 
 	// Create application and scene
 	a := app.App()
@@ -59,9 +45,9 @@ func main() {
 
 	// Create perspective camera
 	cam := camera.New(1)
-	camPosition := float32(GRADIENT_HEIGHT_B1) * 0.4
+	camPosition := float32(GRADIENT_HEIGHT_B1) * 0.35
 	cam.SetPosition(-camPosition/2.0, -camPosition*2, camPosition*2.0)
-	cam.LookAt(&math32.Vector3{0, 0, -0.5}, &math32.Vector3{0, 0, 1})
+	cam.LookAt(&math32.Vector3{0, 0, -1}, &math32.Vector3{0, 0, 1})
 	scene.Add(cam)
 
 	// Set up orbit control for the camera
@@ -80,11 +66,30 @@ func main() {
 
 	xb := Bounds{-TERRAIN_WIDTH / 2, TERRAIN_WIDTH / 2}
 	yb := Bounds{-TERRAIN_HEIGHT / 2, TERRAIN_HEIGHT / 2}
-	geom := board1.GenerateSurfaceGeometry(xb, yb)
+	//geom := board1.GenerateSurfaceGeometry(xb, yb, 1.2)
+	geom := GenerateStackedSurfaceGeometry(board1, board2, xb, yb, M, PROPORTION)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
 	mat.SetOpacity(1)
 	mesh := graphic.NewMesh(geom, mat)
 	scene.Add(mesh)
+
+	ySlider := gui.NewVSlider(5, 585)
+	ySlider.SetPosition(5, 5)
+	ySlider.SetScaleFactor(585)
+	ySlider.SetValue(297)
+	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
+		MoveUp(geom, board1, board2, xb, yb, M, PROPORTION, 1)
+	})
+	scene.Add(ySlider)
+
+	xSlider := gui.NewVSlider(5, 585)
+	xSlider.SetPosition(15, 5)
+	xSlider.SetScaleFactor(585)
+	xSlider.SetValue(297)
+	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
+
+	})
+	scene.Add(xSlider)
 
 	// Create and add lights to the scene
 	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.5))
@@ -93,10 +98,6 @@ func main() {
 	light.SetLinearDecay(0.2)
 	light.SetQuadraticDecay(0)
 	scene.Add(light)
-	//pointLight2 := light.NewPoint(&math32.Color{0.8, 0.8, 0.8}, 10)
-	//pointLight2.SetPosition(4, -5, 3)
-	//pointLight2.SetQuadraticDecay(0.2)
-	//scene.Add(pointLight2)
 
 	// Set background color to gray
 	a.Gls().ClearColor(0.3, 0.3, 0.3, 1.0)
@@ -106,17 +107,4 @@ func main() {
 		a.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
 		renderer.Render(scene, cam)
 	})
-
-	/////////////////////////////////
-	// ========== Test 3 ========== //
-	//////////////////////////////////
-
-	//img3 := image.NewRGBA(image.Rect(-TERRAIN_WIDTH/2, -TERRAIN_HEIGHT/2, TERRAIN_WIDTH/2, TERRAIN_HEIGHT/2))
-	//board2.renderImg(img3)
-	//imgFile3, err3 := os.Create("img/terrain2.png")
-	//if err3 != nil {
-	//	fmt.Println("Cannot create file: ", err3)
-	//}
-	//png.Encode(imgFile3, img3.SubImage(img3.Rect))
-	//imgFile3.Close()
 }
