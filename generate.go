@@ -109,34 +109,15 @@ func GenerateStackedSurfaceGeometry(board1, board2 Board, xBounds, yBounds Bound
 	return geom
 }
 
-func MoveUp(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Bounds, m, prop float32, yDisp uint16) {
+func Move(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Bounds, m, prop float32, xDisp, yDisp int) {
 	//vbo := geom.GetGeometry().VBO(gls.VertexPosition).Buffer()
 	//fmt.Println(vbo.Len())
 	incX1 := float32(board1.xBounds.size()) / float32(xBounds.size())
 	incX2 := float32(board2.xBounds.size()) / float32(xBounds.size())
 	incY1 := float32(board1.yBounds.size()) / float32(yBounds.size())
 	incY2 := float32(board2.yBounds.size()) / float32(yBounds.size())
-	//i := 0
-	//for i = 0; i < vbo.Len()-xBounds.size(); i += 6 {
-	//	oldVertex := math32.NewVector3(0, 0, 0)
-	//	vbo.GetVector3(i, oldVertex)
-	//	newVertex := math32.NewVector3(0, 0, 0)
-	//	vbo.GetVector3(i+xBounds.size(), newVertex)
-	//	newHeight := newVertex.Z
-	//	vbo.SetVector3(i, math32.NewVector3(oldVertex.X, oldVertex.Y, newHeight))
-	//}
-	//yf1 := float32(board1.yBounds.upper) + incY1
-	//yf2 := float32(board2.yBounds.upper) + incY2
-	//for x1, x2 := float32(board1.xBounds.lower), float32(board2.xBounds.lower); x1 < float32(board1.xBounds.upper) && i < vbo.Len()-5; x1, x2 = x1+incX1, x2+incX2 {
-	//	oldVertex := math32.NewVector3(0, 0, 0)
-	//	vbo.GetVector3(i, oldVertex)
-	//	height1 := float32((perlinNoise(board1, x1, yf1)) * prop)
-	//	height2 := float32((perlinNoise(board2, x2, yf2)) * (1 - prop))
-	//	vbo.SetVector3(i, math32.NewVector3(oldVertex.X, oldVertex.Y, (height1+height2)*m))
-	//	i += 6
-	//}
 	geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		x1 := vertex.X
+		x1 := vertex.X + (float32(xDisp) * incX1)
 		x2 := (x1 / incX1) * incX2
 		y1 := vertex.Y + (float32(yDisp) * incY1)
 		y2 := (y1 / incY1) * incY2
@@ -145,18 +126,6 @@ func MoveUp(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Boun
 		vertex.Z = (height1 + height2) * m
 		return false
 	})
-}
-
-func MoveDown(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Bounds, m, prop float32) {
-
-}
-
-func MoveLeft(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Bounds, m, prop float32) {
-
-}
-
-func MoveRight(geom *geometry.Geometry, board1, board2 Board, xBounds, yBounds Bounds, m, prop float32) {
-
 }
 
 ////////////////////

@@ -73,21 +73,36 @@ func main() {
 	mesh := graphic.NewMesh(geom, mat)
 	scene.Add(mesh)
 
-	ySlider := gui.NewVSlider(5, 585)
-	ySlider.SetPosition(5, 5)
+	xDisp := 0
+	yDisp := 0
+
+	sliderYTitle := gui.NewLabel("Y")
+	sliderYTitle.SetPosition(5, 3)
+	//sliderYTitle.SetSize(5.0, 5.0)
+	scene.Add(sliderYTitle)
+
+	sliderXTitle := gui.NewLabel("X")
+	sliderXTitle.SetPosition(15, 3)
+	//sliderXTitle.SetSize(5.0, 5.0)
+	scene.Add(sliderXTitle)
+
+	ySlider := gui.NewVSlider(5, 570)
+	ySlider.SetPosition(8, 20)
 	ySlider.SetScaleFactor(585)
 	ySlider.SetValue(297)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
-		MoveUp(geom, board1, board2, xb, yb, M, PROPORTION, 1)
+		yDisp = int(ySlider.Value()) - 297
+		Move(geom, board1, board2, xb, yb, M, PROPORTION, int(xDisp), int(yDisp))
 	})
 	scene.Add(ySlider)
 
-	xSlider := gui.NewVSlider(5, 585)
-	xSlider.SetPosition(15, 5)
+	xSlider := gui.NewVSlider(5, 570)
+	xSlider.SetPosition(18, 20)
 	xSlider.SetScaleFactor(585)
 	xSlider.SetValue(297)
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
-
+		xDisp = int(xSlider.Value()) - 297
+		Move(geom, board1, board2, xb, yb, M, PROPORTION, int(xDisp), int(yDisp))
 	})
 	scene.Add(xSlider)
 
