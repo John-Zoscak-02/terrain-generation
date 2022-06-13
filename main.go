@@ -13,26 +13,27 @@ import (
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/renderer"
+	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/window"
 )
 
-const TERRAIN_WIDTH = 100
-const TERRAIN_HEIGHT = 100
+const TERRAIN_WIDTH = 96
+const TERRAIN_HEIGHT = 96
 
 // Gradient widths need to be odd numbers
-const GRADIENT_WIDTH_B1 = 7
-const GRADIENT_HEIGHT_B1 = 7
-const GRADIENT_WIDTH_B2 = 17
-const GRADIENT_HEIGHT_B2 = 17
+const GRADIENT_WIDTH_B1 = 5
+const GRADIENT_HEIGHT_B1 = 5
+const GRADIENT_WIDTH_B2 = 27
+const GRADIENT_HEIGHT_B2 = 27
 
-const M = 1.2
-const PROPORTION = 0.85
+const M = 0.8
+const PROPORTION = 0.92
 const SEED_1 = 43
 const SEED_2 = 97
 
 func main() {
-	var board1 Board
-	var board2 Board
+	var board1 GradientBoard
+	var board2 GradientBoard
 	board1.initialize(GRADIENT_WIDTH_B1, GRADIENT_HEIGHT_B1, SEED_1)
 	board2.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
 
@@ -64,13 +65,12 @@ func main() {
 	a.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
-	xb := Bounds{-TERRAIN_WIDTH / 2, TERRAIN_WIDTH / 2}
-	yb := Bounds{-TERRAIN_HEIGHT / 2, TERRAIN_HEIGHT / 2}
 	//geom := board1.GenerateSurfaceGeometry(xb, yb, 1.2)
-	geom := GenerateStackedSurfaceGeometry(board1, board2, xb, yb, M, PROPORTION)
+	terrain := new(BipartiteTerrain)
+	terrain.initialize(board1, board2, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
 	mat.SetOpacity(1)
-	mesh := graphic.NewMesh(geom, mat)
+	mesh := graphic.NewMesh(terrain.geom, mat)
 	scene.Add(mesh)
 
 	xDisp := 0
@@ -92,7 +92,7 @@ func main() {
 	ySlider.SetValue(297)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		yDisp = int(ySlider.Value()) - 297
-		Move(geom, board1, board2, xb, yb, M, PROPORTION, int(xDisp), int(yDisp))
+		terrain.Move(int(xDisp), int(yDisp))
 	})
 	scene.Add(ySlider)
 
@@ -102,7 +102,7 @@ func main() {
 	xSlider.SetValue(297)
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		xDisp = int(xSlider.Value()) - 297
-		Move(geom, board1, board2, xb, yb, M, PROPORTION, int(xDisp), int(yDisp))
+		terrain.Move(int(xDisp), int(yDisp))
 	})
 	scene.Add(xSlider)
 
@@ -113,6 +113,9 @@ func main() {
 	light.SetLinearDecay(0.2)
 	light.SetQuadraticDecay(0)
 	scene.Add(light)
+
+	// Create and add an axis helper to the scene
+	scene.Add(helper.NewAxes(0.5))
 
 	// Set background color to gray
 	a.Gls().ClearColor(0.3, 0.3, 0.3, 1.0)
