@@ -17,8 +17,8 @@ import (
 	"github.com/g3n/engine/window"
 )
 
-const TERRAIN_WIDTH = 127
-const TERRAIN_HEIGHT = 127
+const TERRAIN_WIDTH = 255
+const TERRAIN_HEIGHT = 255
 
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 5
@@ -26,16 +26,24 @@ const GRADIENT_HEIGHT_B1 = 5
 const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
+// Magnitude / Amplitude of the terrain
 const M = 0.8
+
+// The significiance of macro and micro componenets of the bipartite terrain
 const PROPORTION = 0.92
+
+// Seed for the macro gradient board
 const SEED_1 = 43
+
+// Seed for the micro gradient board
 const SEED_2 = 97
 
 func main() {
-	var board1 GradientBoard
-	var board2 GradientBoard
-	board1.initialize(GRADIENT_WIDTH_B1, GRADIENT_HEIGHT_B1, SEED_1)
-	board2.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
+	//Initializing the gradient boards to add to the bipartite terrain
+	var macro GradientBoard
+	var micro GradientBoard
+	macro.initialize(GRADIENT_WIDTH_B1, GRADIENT_HEIGHT_B1, SEED_1)
+	micro.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
 
 	// Create application and scene
 	a := app.App()
@@ -67,42 +75,65 @@ func main() {
 
 	//geom := board1.GenerateSurfaceGeometry(xb, yb, 1.2)
 	terrain := new(BipartiteTerrain)
-	terrain.initialize(board1, board2, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
+	terrain.initialize(macro, micro, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
 	mat.SetOpacity(1)
 	mesh := graphic.NewMesh(terrain.geom, mat)
 	scene.Add(mesh)
 
+	// water plane
+	//waterGeometry := geometry.NewPlane(GRADIENT_WIDTH_B1-1, GRADIENT_HEIGHT_B1-1)
+	//waterColor := material.NewStandard(math32.NewColor("darkblue"))
+	//water := graphic.NewMesh(waterGeometry, waterColor)
+	//waterGeometry.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	//	vertex.Z = -0.2 * M
+	//	return false
+	//})
+	//scene.Add(water)
+
+	// Variables to keep track of the current dispacement from the terrain origin
 	xDisp := 0
 	yDisp := 0
 
+	// Label for Y slider
 	sliderYTitle := gui.NewLabel("Y")
 	sliderYTitle.SetPosition(5, 3)
 	//sliderYTitle.SetSize(5.0, 5.0)
 	scene.Add(sliderYTitle)
 
+	// Label for X slider
 	sliderXTitle := gui.NewLabel("X")
 	sliderXTitle.SetPosition(15, 3)
 	//sliderXTitle.SetSize(5.0, 5.0)
 	scene.Add(sliderXTitle)
 
+	// Y Slider for changing the rendered terrain in the Y direction
 	ySlider := gui.NewVSlider(5, 570)
 	ySlider.SetPosition(8, 20)
 	ySlider.SetScaleFactor(585)
 	ySlider.SetValue(297)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
+		if int(ySlider.Value())-297 < yDisp {
+			terrain.MoveDown()
+		} else if int(ySlider.Value())-297 > yDisp {
+			terrain.MoveUp()
+		}
 		yDisp = int(ySlider.Value()) - 297
-		terrain.Move(int(xDisp), int(yDisp))
 	})
 	scene.Add(ySlider)
 
+	// X Slider for changing the rendered terrain in the X direction
 	xSlider := gui.NewVSlider(5, 570)
 	xSlider.SetPosition(18, 20)
 	xSlider.SetScaleFactor(585)
 	xSlider.SetValue(297)
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
+		if int(xSlider.Value())-297 < xDisp {
+			terrain.MoveLeft()
+		} else if int(xSlider.Value())-297 > xDisp {
+			terrain.MoveRight()
+		}
 		xDisp = int(xSlider.Value()) - 297
-		terrain.Move(int(xDisp), int(yDisp))
 	})
 	scene.Add(xSlider)
 
