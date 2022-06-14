@@ -1,5 +1,7 @@
 # terrain-generation
 
+![alt text](https://github.com/John-Zoscak-02/terrain-generation/blob/main/image/terrain-generation.png?raw=true)
+
 This program is a progressive perlin noise terrain generator written in golang using g3n: A golang bindings library for using OpenGL (https://github.com/g3n/engine)
 It is currently configured for laying two terrains on top of each other, these terrains are called Bipartite Terrains. However, there is skeleton code for simpler terrains should they be desired
 
