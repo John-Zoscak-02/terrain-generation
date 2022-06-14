@@ -17,8 +17,8 @@ import (
 	"github.com/g3n/engine/window"
 )
 
-const TERRAIN_WIDTH = 96
-const TERRAIN_HEIGHT = 96
+const TERRAIN_WIDTH = 127
+const TERRAIN_HEIGHT = 127
 
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 5

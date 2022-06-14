@@ -10,5 +10,6 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220516021902-eb3e265c7661 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	golang.org/x/image v0.0.0-20220601225756-64ec528b34cd // indirect
+	gonum.org/v1/gonum v0.11.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
