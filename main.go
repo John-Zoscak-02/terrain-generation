@@ -27,7 +27,7 @@ const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
 // Magnitude / Amplitude of the terrain
-const M = 0.8
+const M = 1.4
 
 // The significiance of macro and micro componenets of the bipartite terrain
 const PROPORTION = 0.92
@@ -108,32 +108,32 @@ func main() {
 	scene.Add(sliderXTitle)
 
 	// Y Slider for changing the rendered terrain in the Y direction
-	ySlider := gui.NewVSlider(5, 570)
+	ySlider := gui.NewVScrollBar(5, 570)
 	ySlider.SetPosition(8, 20)
-	ySlider.SetScaleFactor(585)
-	ySlider.SetValue(297)
+	ySlider.SetScale(0, 570, 0)
+	ySlider.SetValue(0.5)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
-		if int(ySlider.Value())-297 < yDisp {
+		if int(ySlider.Value()*570)-285 > yDisp {
 			terrain.MoveDown()
-		} else if int(ySlider.Value())-297 > yDisp {
+		} else if int(ySlider.Value()*570)-285 < yDisp {
 			terrain.MoveUp()
 		}
-		yDisp = int(ySlider.Value()) - 297
+		yDisp = int(ySlider.Value()*570) - 285
 	})
 	scene.Add(ySlider)
 
 	// X Slider for changing the rendered terrain in the X direction
-	xSlider := gui.NewVSlider(5, 570)
+	xSlider := gui.NewVScrollBar(5, 570)
 	xSlider.SetPosition(18, 20)
-	xSlider.SetScaleFactor(585)
-	xSlider.SetValue(297)
+	xSlider.SetScale(0, 570, 0)
+	xSlider.SetValue(0.5)
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
-		if int(xSlider.Value())-297 < xDisp {
+		if int(xSlider.Value()*570)-285 > xDisp {
 			terrain.MoveLeft()
-		} else if int(xSlider.Value())-297 > xDisp {
+		} else if int(xSlider.Value()*570)-285 < xDisp {
 			terrain.MoveRight()
 		}
-		xDisp = int(xSlider.Value()) - 297
+		xDisp = int(xSlider.Value()*570) - 285
 	})
 	scene.Add(xSlider)
 
