@@ -27,7 +27,7 @@ const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
 // Magnitude / Amplitude of the terrain
-const M = 1.2
+const M = 1.0
 
 // The significiance of macro and micro componenets of the bipartite terrain
 const PROPORTION = 0.89
@@ -54,7 +54,7 @@ func main() {
 
 	// Create perspective camera
 	cam := camera.New(1)
-	camPosition := float32(GRADIENT_HEIGHT_B1) * 0.35
+	camPosition := float32(GRADIENT_HEIGHT_B1) * 0.30
 	cam.SetPosition(-camPosition/2.0, -camPosition*2, camPosition*2.0)
 	cam.LookAt(&math32.Vector3{0, 0, -1}, &math32.Vector3{0, 0, 1})
 	scene.Add(cam)
