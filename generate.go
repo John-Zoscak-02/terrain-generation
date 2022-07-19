@@ -253,34 +253,6 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 	})
 }
 
-//func (terrain *BipartiteTerrain) MoveLeft() {
-//	terrain.xDisp = terrain.xDisp - 1
-//	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
-//	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
-//	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
-//	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
-//	nextZ := float32(0)
-//	i := 0
-//	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-//		if i%int(terrain.jointWidth+1) == 0 {
-//			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
-//			x2 := (x1 / incX1) * incX2
-//			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
-//			y2 := (y1 / incY1) * incY2
-//			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
-//			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
-//			temp := vertex.Z
-//			vertex.Z = (height1 + height2) * terrain.m
-//			nextZ = temp
-//		} else {
-//			temp := vertex.Z
-//			vertex.Z = nextZ
-//			nextZ = temp
-//		}
-//		return false
-//	})
-//}
-
 func (terrain *BipartiteTerrain) MoveRight(amount int) {
 	terrain.xDisp = terrain.xDisp + amount
 	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
@@ -306,16 +278,60 @@ func (terrain *BipartiteTerrain) MoveRight(amount int) {
 	})
 }
 
-//func (terrain *BipartiteTerrain) MoveRight() {
-//	terrain.xDisp = terrain.xDisp + 1
-//	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+func (terrain *BipartiteTerrain) MoveDown(amount int) {
+	terrain.yDisp = terrain.yDisp + amount
+	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
+	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
+	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
+	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
+	i := 0
+	pivot := 0
+	line := make([]float32, int(terrain.jointWidth+1)*(-amount+1), int(terrain.jointWidth+1)*(-amount+1))
+	//fmt.Println(-amount)
+	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+		//fmt.Print(i % int(terrain.jointWidth+1))
+		//if i%int(terrain.jointWidth+1) == 0 {
+		//	fmt.Println()
+		//}
+		if i < int(terrain.jointWidth+1)*(-amount) {
+			line[i] = vertex.Z
+			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
+			x2 := (x1 / incX1) * incX2
+			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
+			y2 := (y1 / incY1) * incY2
+			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
+			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
+			vertex.Z = (height1 + height2) * terrain.m
+			//fmt.Print(" Generat ")
+		} else if pivot < int(terrain.jointWidth+1)*(-amount)-1 {
+			temp := vertex.Z
+			vertex.Z = line[pivot]
+			line[pivot] = temp
+			pivot++
+			//fmt.Print(" Passing ")
+		} else {
+			temp := vertex.Z
+			vertex.Z = line[pivot]
+			line[pivot] = temp
+			pivot = 0
+			//fmt.Print(" Returns ")
+		}
+		i++
+		return false
+	})
+}
+
+//func (terrain *BipartiteTerrain) MoveDown() {
+//	terrain.yDisp = terrain.yDisp - 1
 //	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
 //	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
 //	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
 //	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 //	i := 0
+//	line := make([]float32, int(terrain.jointWidth+1), int(terrain.jointWidth+1))
 //	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-//		if (i+1)%int(terrain.jointWidth+1) == 0 {
+//		if i <= int(terrain.jointWidth)*6 {
+//			line[i/6] = vertex.Z
 //			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 //			x2 := (x1 / incX1) * incX2
 //			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
@@ -324,43 +340,17 @@ func (terrain *BipartiteTerrain) MoveRight(amount int) {
 //			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 //			vertex.Z = (height1 + height2) * terrain.m
 //		} else {
-//			vertex.Z = vbo[(i*6)+6+2]
+//			temp := vertex.Z
+//			vertex.Z = line[(i/6)%int((terrain.jointWidth+1))]
+//			line[(i/6)%int((terrain.jointWidth+1))] = temp
 //		}
-//		i++
+//		i += 6
 //		return false
 //	})
 //}
 
-func (terrain *BipartiteTerrain) MoveDown() {
-	terrain.yDisp = terrain.yDisp - 1
-	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
-	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
-	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
-	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
-	i := 0
-	line := make([]float32, int(terrain.jointWidth+1), int(terrain.jointWidth+1))
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		if i <= int(terrain.jointWidth)*6 {
-			line[i/6] = vertex.Z
-			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
-			x2 := (x1 / incX1) * incX2
-			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
-			y2 := (y1 / incY1) * incY2
-			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
-			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
-			vertex.Z = (height1 + height2) * terrain.m
-		} else {
-			temp := vertex.Z
-			vertex.Z = line[(i/6)%int((terrain.jointWidth+1))]
-			line[(i/6)%int((terrain.jointWidth+1))] = temp
-		}
-		i += 6
-		return false
-	})
-}
-
-func (terrain *BipartiteTerrain) MoveUp() {
-	terrain.yDisp = terrain.yDisp + 1
+func (terrain *BipartiteTerrain) MoveUp(amount int) {
+	terrain.yDisp = terrain.yDisp + amount
 	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
 	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
 	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
@@ -368,7 +358,7 @@ func (terrain *BipartiteTerrain) MoveUp() {
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		if i >= int(terrain.jointWidth+1)*6*int(terrain.jointHeight) {
+		if i >= int(terrain.jointWidth+1)*(int(terrain.jointHeight)-amount) {
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
 			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
@@ -377,12 +367,37 @@ func (terrain *BipartiteTerrain) MoveUp() {
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			vertex.Z = (height1 + height2) * terrain.m
 		} else {
-			vertex.Z = vbo[i+(int(terrain.jointWidth+1)*6)+2]
+			vertex.Z = vbo[i*6+(int(terrain.jointWidth+1)*6*amount)+2]
 		}
-		i += 6
+		i++
 		return false
 	})
 }
+
+//func (terrain *BipartiteTerrain) MoveUp() {
+//	terrain.yDisp = terrain.yDisp + 1
+//	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+//	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
+//	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
+//	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
+//	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
+//	i := 0
+//	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+//		if i >= int(terrain.jointWidth+1)*6*int(terrain.jointHeight) {
+//			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
+//			x2 := (x1 / incX1) * incX2
+//			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
+//			y2 := (y1 / incY1) * incY2
+//			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
+//			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
+//			vertex.Z = (height1 + height2) * terrain.m
+//		} else {
+//			vertex.Z = vbo[i+(int(terrain.jointWidth+1)*6)+2]
+//		}
+//		i += 6
+//		return false
+//	})
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //============================================Math============================================//

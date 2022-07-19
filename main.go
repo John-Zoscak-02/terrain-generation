@@ -113,15 +113,15 @@ func main() {
 	ySlider.SetValue(0.5)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(ySlider.Value()*570)-285 > yDisp {
-			for i := 0; i < (int(ySlider.Value()*570)-285)-yDisp; i++ {
-				terrain.MoveDown()
-			}
-			//terrain.MoveDown()
+			//for i := 0; i < (int(ySlider.Value()*570)-285)-yDisp; i++ {
+			//	terrain.MoveDown()
+			//}
+			terrain.MoveDown(yDisp - (int(ySlider.Value()*570) - 285))
 		} else if int(ySlider.Value()*570)-285 < yDisp {
-			for i := 0; i < yDisp-(int(ySlider.Value()*570)-285); i++ {
-				terrain.MoveUp()
-			}
-			//terrain.MoveUp()
+			//for i := 0; i < yDisp-(int(ySlider.Value()*570)-285); i++ {
+			//	terrain.MoveUp()
+			//}
+			terrain.MoveUp(yDisp - (int(ySlider.Value()*570) - 285))
 		}
 		yDisp = int(ySlider.Value()*570) - 285
 	})
