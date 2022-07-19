@@ -27,10 +27,10 @@ const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
 // Magnitude / Amplitude of the terrain
-const M = 1.4
+const M = 1.2
 
 // The significiance of macro and micro componenets of the bipartite terrain
-const PROPORTION = 0.92
+const PROPORTION = 0.89
 
 // Seed for the macro gradient board
 const SEED_1 = 43
@@ -77,7 +77,6 @@ func main() {
 	terrain := new(BipartiteTerrain)
 	terrain.initialize(macro, micro, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
-	mat.SetOpacity(1)
 	mesh := graphic.NewMesh(terrain.geom, mat)
 	scene.Add(mesh)
 
@@ -114,9 +113,15 @@ func main() {
 	ySlider.SetValue(0.5)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(ySlider.Value()*570)-285 > yDisp {
-			terrain.MoveDown()
+			for i := 0; i < (int(ySlider.Value()*570)-285)-yDisp; i++ {
+				terrain.MoveDown()
+			}
+			//terrain.MoveDown()
 		} else if int(ySlider.Value()*570)-285 < yDisp {
-			terrain.MoveUp()
+			for i := 0; i < yDisp-(int(ySlider.Value()*570)-285); i++ {
+				terrain.MoveUp()
+			}
+			//terrain.MoveUp()
 		}
 		yDisp = int(ySlider.Value()*570) - 285
 	})
@@ -129,9 +134,15 @@ func main() {
 	xSlider.SetValue(0.5)
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(xSlider.Value()*570)-285 > xDisp {
-			terrain.MoveLeft()
+			terrain.MoveLeft(xDisp - (int(xSlider.Value()*570) - 285))
+			//for i := 0; i < (int(xSlider.Value()*570)-285)-xDisp; i++ {
+			//	terrain.MoveLeft()
+			//}
 		} else if int(xSlider.Value()*570)-285 < xDisp {
-			terrain.MoveRight()
+			terrain.MoveRight(xDisp - (int(xSlider.Value()*570) - 285))
+			//for i := 0; i < xDisp-(int(xSlider.Value()*570)-285); i++ {
+			//	terrain.MoveRight()
+			//}
 		}
 		xDisp = int(xSlider.Value()*570) - 285
 	})
