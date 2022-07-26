@@ -95,18 +95,18 @@ func (board *GradientBoard) initialize(gradientWidth, gradientHeight uint32, see
 //	return geom
 //}
 
-func (board *GradientBoard) GenerateSurfaceGeometry(terrainWidth, terrrainHeight uint16, m float32) *geometry.Geometry {
-	incY := float32(board.yBounds.size()) / float32(terrrainHeight)
+func (board *GradientBoard) GenerateSurfaceGeometry(terrainWidth, terrainHeight uint16, m float32) *geometry.Geometry {
+	incY := float32(board.yBounds.size()) / float32(terrainHeight)
 	incX := float32(board.xBounds.size()) / float32(terrainWidth)
-	positions := math32.NewArrayF32(0, int(terrrainHeight*terrainWidth))
-	indices := math32.NewArrayU32(0, int((terrrainHeight-1)*(terrainWidth-1))*2)
+	positions := math32.NewArrayF32(0, int(terrainHeight*terrainWidth))
+	indices := math32.NewArrayU32(0, int((terrainHeight-1)*(terrainWidth-1))*2)
 	index := uint32(0)
 	for y := float32(board.yBounds.lower); y <= float32(board.yBounds.upper); y += incY {
 		for x := float32(board.xBounds.lower); x <= float32(board.xBounds.upper); x += incX {
 			height := float32(perlinNoise(*board, x, y)) * m
 			positions.Append(x, y, height, 0, 0, 1)
 			if x+incX <= float32(board.xBounds.upper) && y+incY <= float32(board.yBounds.upper) {
-				indices.Append(index, index+uint32(terrainWidth)+2, index+uint32(terrrainHeight)+1)
+				indices.Append(index, index+uint32(terrainWidth)+2, index+uint32(terrainHeight)+1)
 			}
 			index++
 		}
@@ -163,10 +163,10 @@ func (terrain *BipartiteTerrain) initialize(macro, micro GradientBoard, terrainW
  * Uses the perlin noise algorithm and the magnitude and proportion metrics to calculate the terrain heights
  */
 func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
-	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
-	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
-	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
-	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
+	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight-1)
+	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth-1)
+	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight-1)
+	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth-1)
 
 	positions := math32.NewArrayF32(0, int(terrain.jointHeight*terrain.jointWidth))
 	indices := math32.NewArrayU32(0, int((terrain.jointHeight-1)*(terrain.jointWidth-1)>>1))
@@ -192,11 +192,16 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			positions.Append(x1, y1, (height1+height2)*terrain.m, 0, 0, 1)
-			if x1+incX1 < float32(terrain.macro.xBounds.upper) && y1+incY1 < float32(terrain.macro.yBounds.upper) {
-				indices.Append(index, index+uint32(terrain.jointWidth+1)+1, index+uint32(terrain.jointWidth+1))
+			//if x1+incX1 < float32(terrain.macro.xBounds.upper) && y1+incY1 < float32(terrain.macro.yBounds.upper) {
+			//	indices.Append(index, index+uint32(terrain.jointWidth)+1, index+uint32(terrain.jointWidth))
+			//}
+			if index < (uint32(terrain.jointWidth*terrain.jointHeight)-1)-uint32(terrain.jointWidth) && (index+1)%uint32(terrain.jointWidth) != 0 {
+				//indices.Append(index, index+uint32(terrain.jointWidth)+1, index+uint32(terrain.jointWidth))
+				indices.Append(index, index+1, index+uint32(terrain.jointWidth))
 			}
 			index++
 		}
+		fmt.Println()
 	}
 
 	terrain.geom.SetIndices(indices)
@@ -219,8 +224,8 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 	//fmt.Println(-amount)
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
 		//fmt.Print(i % int(terrain.jointWidth+1))
-		if i%int(terrain.jointWidth+1) < -amount {
-			if i%int(terrain.jointWidth+1) == 0 {
+		if i%int(terrain.jointWidth) < -amount {
+			if i%int(terrain.jointWidth) == 0 {
 				back = 0
 				//fmt.Println()
 			}
@@ -262,7 +267,7 @@ func (terrain *BipartiteTerrain) MoveRight(amount int) {
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		if (i+amount)%int(terrain.jointWidth+1) < amount {
+		if (i+amount)%int(terrain.jointWidth) < amount {
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
 			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
@@ -293,7 +298,7 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 		//if i%int(terrain.jointWidth+1) == 0 {
 		//	fmt.Println()
 		//}
-		if i < int(terrain.jointWidth+1)*(-amount) {
+		if i < int(terrain.jointWidth)*(-amount) {
 			line[i] = vertex.Z
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
@@ -303,7 +308,7 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			vertex.Z = (height1 + height2) * terrain.m
 			//fmt.Print(" Generat ")
-		} else if pivot < int(terrain.jointWidth+1)*(-amount)-1 {
+		} else if pivot < int(terrain.jointWidth)*(-amount)-1 {
 			temp := vertex.Z
 			vertex.Z = line[pivot]
 			line[pivot] = temp
@@ -330,7 +335,7 @@ func (terrain *BipartiteTerrain) MoveUp(amount int) {
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		if i >= int(terrain.jointWidth+1)*(int(terrain.jointHeight)-amount) {
+		if i >= int(terrain.jointWidth)*(int(terrain.jointHeight)-amount) {
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
 			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
@@ -339,7 +344,7 @@ func (terrain *BipartiteTerrain) MoveUp(amount int) {
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			vertex.Z = (height1 + height2) * terrain.m
 		} else {
-			vertex.Z = vbo[i*6+(int(terrain.jointWidth+1)*6*amount)+2]
+			vertex.Z = vbo[i*6+(int(terrain.jointWidth)*6*amount)+2]
 		}
 		i++
 		return false

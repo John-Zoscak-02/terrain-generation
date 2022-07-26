@@ -17,8 +17,12 @@ import (
 	"github.com/g3n/engine/window"
 )
 
-const TERRAIN_WIDTH = 127
-const TERRAIN_HEIGHT = 127
+// Make the terrain widths odd numbers
+// Some terrain sizes do not work because the gradients will not divide rationally into them. It will be clear after running if the terrain/gradient sizes failed:
+//    - A diagonal section of the terrain will not be rendered
+//    - An extra, large gray triangle will be rendered in the topside of the terrain.
+const TERRAIN_WIDTH = 151
+const TERRAIN_HEIGHT = 151
 
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 5
@@ -27,10 +31,10 @@ const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
 // Magnitude / Amplitude of the terrain
-const M = 1.0
+const M = 1.2
 
 // The significiance of macro and micro componenets of the bipartite terrain
-const PROPORTION = 0.89
+const PROPORTION = 0.91
 
 // Seed for the macro gradient board
 const SEED_1 = 43
