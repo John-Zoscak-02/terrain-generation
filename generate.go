@@ -137,15 +137,15 @@ type BipartiteTerrain struct {
 	geom        *geometry.Geometry
 	macro       GradientBoard
 	micro       GradientBoard
-	jointWidth  uint16
-	jointHeight uint16
+	jointWidth  uint32
+	jointHeight uint32
 	xDisp       int
 	yDisp       int
 	m           float32
 	prop        float32
 }
 
-func (terrain *BipartiteTerrain) initialize(macro, micro GradientBoard, terrainWidth, terrainHeight uint16, m, prop float32) {
+func (terrain *BipartiteTerrain) initialize(macro, micro GradientBoard, terrainWidth, terrainHeight uint32, m, prop float32) {
 	terrain.geom = geometry.NewGeometry()
 	terrain.macro = macro
 	terrain.micro = micro

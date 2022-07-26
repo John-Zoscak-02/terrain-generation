@@ -21,8 +21,8 @@ import (
 // Some terrain sizes do not work because the gradients will not divide rationally into them. It will be clear after running if the terrain/gradient sizes failed:
 //    - A diagonal section of the terrain will not be rendered
 //    - An extra, large gray triangle will be rendered in the topside of the terrain.
-const TERRAIN_WIDTH = 151
-const TERRAIN_HEIGHT = 151
+const TERRAIN_WIDTH = 191
+const TERRAIN_HEIGHT = 191
 
 // Gradient widths need to be odd numbers
 const GRADIENT_WIDTH_B1 = 5
@@ -31,7 +31,7 @@ const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
 // Magnitude / Amplitude of the terrain
-const M = 1.2
+const M = 1.4
 
 // The significiance of macro and micro componenets of the bipartite terrain
 const PROPORTION = 0.91
