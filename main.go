@@ -18,8 +18,8 @@ import (
 )
 
 // Make terrain widths odd numbers
-const TERRAIN_WIDTH = 127
-const TERRAIN_HEIGHT = 127
+const TERRAIN_WIDTH = 63
+const TERRAIN_HEIGHT = 63
 
 // Gradient widths
 const GRADIENT_WIDTH_B1 = 5

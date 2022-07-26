@@ -134,7 +134,7 @@ func (board *GradientBoard) GenerateSurfaceGeometry(terrainWidth, terrrainHeight
  * @var prop The proportion that describes macro terrain over micro terrain
  */
 type BipartiteTerrain struct {
-	geom        *geometry.Geometry
+	//geom        *geometry.Geometry
 	planes      []*geometry.Geometry
 	macro       GradientBoard
 	micro       GradientBoard
@@ -174,33 +174,11 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth-1)
 
 	positions := math32.NewArrayF32(0, int(terrain.jointHeight*terrain.jointWidth))
-	//indices := math32.NewArrayU32(0, int((terrain.jointHeight-1)*(terrain.jointWidth-1)>>1))
-	//index := uint32(0)
-
-	//for y1, y2 := float32(terrain.macro.yBounds.lower), float32(terrain.micro.yBounds.lower); index < uint32(terrain.jointHeight+1)*uint32(terrain.jointWidth+1); y1, y2 = y1+incY1, y2+incY2 {
-	//	for x1, x2 := float32(terrain.macro.xBounds.lower), float32(terrain.micro.xBounds.lower); index%uint32(terrain.jointWidth+1) <= uint32(terrain.jointWidth); x1, x2 = x1+incX1, x2+incX2 {
-	//		if (index)%uint32(terrain.jointWidth+1) != 0 {
-	//			// && (index-1)+uint32(terrain.jointWidth)+1 < uint32(terrain.jointHeight)*uint32(terrain.jointWidth)
-	//			indices.Append((index - 1), (index-1)+1, (index-1)+uint32(terrain.jointWidth)+1)
-	//			//indices.Append((index - 1), (index-1)+uint32(terrain.jointWidth)+2, (index-1)+uint32(terrain.jointWidth+1))
-	//		}
-	//		height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
-	//		height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
-	//		positions.Append(x1, y1, (height1+height2)*terrain.m, 0, 0, 1)
-	//		fmt.Print(index, " ")
-	//		index++
-	//	}
-	//	fmt.Println()
-	//}
 	for y1, y2 := float32(terrain.macro.yBounds.lower), float32(terrain.micro.yBounds.lower); y1 <= float32(terrain.macro.yBounds.upper); y1, y2 = y1+incY1, y2+incY2 {
 		for x1, x2 := float32(terrain.macro.xBounds.lower), float32(terrain.micro.xBounds.lower); x1 <= float32(terrain.macro.xBounds.upper); x1, x2 = x1+incX1, x2+incX2 {
 			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			positions.Append(x1, y1, (height1+height2)*terrain.m, 0, 0, 1)
-			//if x1+incX1 < float32(terrain.macro.xBounds.upper) && y1+incY1 < float32(terrain.macro.yBounds.upper) {
-			//	indices.Append(index, index+uint32(terrain.jointWidth+1)+1, index+uint32(terrain.jointWidth+1))
-			//}
-			//index++
 			//if (height1+height2)*terrain.m < 0.0 {
 			//	fmt.Print(" ", fmt.Sprintf("%1.3f", (height1+height2)*terrain.m), " ")
 			//} else {
@@ -210,26 +188,17 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 		//fmt.Println()
 	}
 
+	vbo := gls.NewVBO(positions).
+		AddAttrib(gls.VertexPosition).
+		AddAttrib(gls.VertexNormal)
+
 	for i := uint32(0); i < uint32(positions.Len()-6)-(uint32(terrain.jointWidth*6)); i += 6 {
 		if (i/6+1)%uint32(terrain.jointWidth) != 0 {
-			ps := math32.NewArrayF32(0, 6*3)
-			ps.Append(positions[i], positions[i+1], positions[i+2], positions[i+3], positions[i+4], positions[i+5])
-			ps.Append(positions[(i+6)], positions[(i+6)+1], positions[(i+6)+2], positions[(i+6)+3], positions[(i+6)+4], positions[(i+6)+5])
-			ps.Append(positions[(i+uint32(terrain.jointWidth*6))], positions[(i+uint32(terrain.jointWidth*6))+1], positions[(i+uint32(terrain.jointWidth*6))+2], positions[(i+uint32(terrain.jointWidth*6))+3], positions[(i+uint32(terrain.jointWidth*6))+4], positions[(i+uint32(terrain.jointWidth*6))+5])
-
-			//fmt.Print(" (", fmt.Sprintf("%6d", i), ", ", fmt.Sprintf("%6d", i+6), ", ", fmt.Sprintf("%6d", i+uint32(terrain.jointWidth*6)), ") ")
-			//if (i/6+1)%uint32(terrain.jointWidth) == 0 {
-			//	fmt.Println()
-			//}
-
 			ind := math32.NewArrayU32(0, 3)
-			ind.Append(0, 1, 2)
+			ind.Append(i, i+6, (i + uint32(terrain.jointWidth*6)))
 
 			terrain.planes[i/6].SetIndices(ind)
-			terrain.planes[i/6].AddVBO(gls.NewVBO(ps).
-				AddAttrib(gls.VertexPosition).
-				AddAttrib(gls.VertexNormal),
-			)
+			terrain.planes[i/6].AddVBO(vbo)
 		}
 	}
 
@@ -261,7 +230,7 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 	front := 0
 	back := 0
 	//fmt.Println(-amount)
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.planes[0].OperateOnVertices(func(vertex *math32.Vector3) bool {
 		//fmt.Print(i % int(terrain.jointWidth+1))
 		if i%int(terrain.jointWidth+1) < -amount {
 			if i%int(terrain.jointWidth+1) == 0 {
@@ -299,13 +268,13 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 
 func (terrain *BipartiteTerrain) MoveRight(amount int) {
 	terrain.xDisp = terrain.xDisp + amount
-	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	vbo := terrain.planes[0].GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
 	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
 	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
 	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.planes[0].OperateOnVertices(func(vertex *math32.Vector3) bool {
 		if (i+amount)%int(terrain.jointWidth+1) < amount {
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
@@ -332,7 +301,7 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 	pivot := 0
 	line := make([]float32, int(terrain.jointWidth+1)*(-amount+1), int(terrain.jointWidth+1)*(-amount+1))
 	//fmt.Println(-amount)
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.planes[0].OperateOnVertices(func(vertex *math32.Vector3) bool {
 		//fmt.Print(i % int(terrain.jointWidth+1))
 		//if i%int(terrain.jointWidth+1) == 0 {
 		//	fmt.Println()
@@ -367,13 +336,13 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 
 func (terrain *BipartiteTerrain) MoveUp(amount int) {
 	terrain.yDisp = terrain.yDisp + amount
-	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	vbo := terrain.planes[0].GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
 	incX1 := float32(terrain.macro.xBounds.size()) / float32(terrain.jointWidth)
 	incX2 := float32(terrain.micro.xBounds.size()) / float32(terrain.jointWidth)
 	incY1 := float32(terrain.macro.yBounds.size()) / float32(terrain.jointHeight)
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.planes[0].OperateOnVertices(func(vertex *math32.Vector3) bool {
 		if i >= int(terrain.jointWidth+1)*(int(terrain.jointHeight)-amount) {
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
