@@ -17,17 +17,23 @@ import (
 	"github.com/g3n/engine/window"
 )
 
+// Make terrain widths odd numbers
 const TERRAIN_WIDTH = 127
 const TERRAIN_HEIGHT = 127
 
-// Gradient widths need to be odd numbers
+// Gradient widths
 const GRADIENT_WIDTH_B1 = 5
 const GRADIENT_HEIGHT_B1 = 5
 const GRADIENT_WIDTH_B2 = 27
 const GRADIENT_HEIGHT_B2 = 27
 
+//const GRADIENT_WIDTH_B1 = 10
+//const GRADIENT_HEIGHT_B1 = 10
+//const GRADIENT_WIDTH_B2 = 54
+//const GRADIENT_HEIGHT_B2 = 54
+
 // Magnitude / Amplitude of the terrain
-const M = 1.0
+const M = 1.5
 
 // The significiance of macro and micro componenets of the bipartite terrain
 const PROPORTION = 0.89
@@ -37,6 +43,8 @@ const SEED_1 = 43
 
 // Seed for the micro gradient board
 const SEED_2 = 97
+
+const SEED_3 = 137
 
 func main() {
 	//Initializing the gradient boards to add to the bipartite terrain
@@ -76,9 +84,15 @@ func main() {
 	//geom := board1.GenerateSurfaceGeometry(xb, yb, 1.2)
 	terrain := new(BipartiteTerrain)
 	terrain.initialize(macro, micro, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
-	mat := material.NewStandard(math32.NewColor("darkgrey"))
-	mesh := graphic.NewMesh(terrain.geom, mat)
-	scene.Add(mesh)
+	//mat := material.NewStandard(math32.NewColor("darkgrey"))
+	//mesh := graphic.NewMesh(terrain.geom, mat)
+	//scene.Add(mesh)
+
+	for _, g := range terrain.planes {
+		mat := material.NewStandard(math32.NewColor("darkgrey"))
+		mesh := graphic.NewMesh(g, mat)
+		scene.Add(mesh)
+	}
 
 	// water plane
 	//waterGeometry := geometry.NewPlane(GRADIENT_WIDTH_B1-1, GRADIENT_HEIGHT_B1-1)

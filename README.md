@@ -16,7 +16,7 @@ It is currently configured for laying two terrains on top of each other, these t
 ## Changing the Terrain
 
  - The seed for the terrain generator can be changed by modifying the SEED_# constants in main.go, It is suggested that prime numbers are used
- - The granularity of the rendered terrain can be changed by modifying the TERRAIN_WIDTH and TERRAIN_HEIGHT constants in main.go. Increasing the width or height will increase the number of triangles renders whereas decreasing the width or height will do the opposite
+ - The granularity of the rendered terrain can be changed by modifying the TERRAIN_WIDTH and TERRAIN_HEIGHT constants in main.go. Increasing the width or height will increase the number of triangles renders whereas decreasing the width or height will do the opposite. Use odd numbers.
  - The number of gradients used by the Perlin Noise algorithm can be modified by changing the GRADIENT_WIDHT_B# and GRADIENT_HEIGHT_B# constants in main.go. These constants are used to determine how many gradients will exist within the rendered terrain, this will change the number of peaks and valleys seen in the terrain
  - To change the magnitude or the amplitude of the terrain generated, the M constant can be modified in main.go
  - TO change the significance of a Bipartite Terrains macro and micro noises, the PROPORITON constant can be modified in main.go
