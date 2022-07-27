@@ -197,11 +197,11 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 			//}
 			if index < (uint32(terrain.jointWidth*terrain.jointHeight)-1)-uint32(terrain.jointWidth) && (index+1)%uint32(terrain.jointWidth) != 0 {
 				//indices.Append(index, index+uint32(terrain.jointWidth)+1, index+uint32(terrain.jointWidth))
-				indices.Append(index, index+1, index+uint32(terrain.jointWidth))
+				indices.Append(index, index+1, index+uint32(terrain.jointWidth)+1)
 			}
 			index++
 		}
-		fmt.Println()
+		//fmt.Println()
 	}
 
 	terrain.geom.SetIndices(indices)

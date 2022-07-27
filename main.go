@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/g3n/engine/app"
@@ -81,6 +82,9 @@ func main() {
 	terrain := new(BipartiteTerrain)
 	terrain.initialize(macro, micro, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	mat.SetTransparent(false)
+	mat.SetShader()
+	fmt.Println(mat.Transparent())
 	mesh := graphic.NewMesh(terrain.geom, mat)
 	scene.Add(mesh)
 
