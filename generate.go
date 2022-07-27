@@ -194,11 +194,28 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 
 	for i := uint32(0); i < uint32(positions.Len()-6)-(uint32(terrain.jointWidth*6)); i += 6 {
 		if (i/6+1)%uint32(terrain.jointWidth) != 0 {
+			//ps := math32.NewArrayF32(0, 6*3)
+			//ps.Append(positions[i], positions[i+1], positions[i+2], positions[i+3], positions[i+4], positions[i+5])
+			//ps.Append(positions[(i+6)], positions[(i+6)+1], positions[(i+6)+2], positions[(i+6)+3], positions[(i+6)+4], positions[(i+6)+5])
+			//ps.Append(positions[(i+uint32(terrain.jointWidth*6))], positions[(i+uint32(terrain.jointWidth*6))+1], positions[(i+uint32(terrain.jointWidth*6))+2], positions[(i+uint32(terrain.jointWidth*6))+3], positions[(i+uint32(terrain.jointWidth*6))+4], positions[(i+uint32(terrain.jointWidth*6))+5])
+
 			ind := math32.NewArrayU32(0, 3)
-			ind.Append(i, i+6, (i + uint32(terrain.jointWidth*6)))
+			ind.Append(i/6, (i/6)+1, ((i / 6) + uint32(terrain.jointWidth)))
+			//ind.Append(0, 1, 2)
 
 			terrain.planes[i/6].SetIndices(ind)
 			terrain.planes[i/6].AddVBO(vbo)
+			//if positions[terrain.planes[i/6].Indices()[0]*6+2] < 0 {
+			//	fmt.Print(" ", fmt.Sprintf("%2.3f", positions[terrain.planes[i/6].Indices()[0]*6+2]), " ")
+			//} else {
+			//	fmt.Print("  ", fmt.Sprintf("%2.3f", positions[terrain.planes[i/6].Indices()[0]*6+2]), " ")
+			//}
+			//terrain.planes[i/6].AddVBO(gls.NewVBO(ps).
+			//	AddAttrib(gls.VertexPosition).
+			//	AddAttrib(gls.VertexNormal),
+			//)
+		} else {
+			//fmt.Println()
 		}
 	}
 

@@ -17,6 +17,8 @@ import (
 	"github.com/g3n/engine/window"
 )
 
+const VAO_ID = 1
+
 // Make terrain widths odd numbers
 const TERRAIN_WIDTH = 63
 const TERRAIN_HEIGHT = 63
@@ -88,12 +90,11 @@ func main() {
 	//mesh := graphic.NewMesh(terrain.geom, mat)
 	//scene.Add(mesh)
 
-	for _, g := range terrain.planes {
-		mat := material.NewStandard(math32.NewColor("darkgrey"))
-		mesh := graphic.NewMesh(g, mat)
+	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	for i, _ := range terrain.planes {
+		mesh := graphic.NewMesh(terrain.planes[i], mat)
 		scene.Add(mesh)
 	}
-
 	// water plane
 	//waterGeometry := geometry.NewPlane(GRADIENT_WIDTH_B1-1, GRADIENT_HEIGHT_B1-1)
 	//waterColor := material.NewStandard(math32.NewColor("darkblue"))
@@ -127,14 +128,8 @@ func main() {
 	ySlider.SetValue(0.5)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(ySlider.Value()*570)-285 > yDisp {
-			//for i := 0; i < (int(ySlider.Value()*570)-285)-yDisp; i++ {
-			//	terrain.MoveDown()
-			//}
 			terrain.MoveDown(yDisp - (int(ySlider.Value()*570) - 285))
 		} else if int(ySlider.Value()*570)-285 < yDisp {
-			//for i := 0; i < yDisp-(int(ySlider.Value()*570)-285); i++ {
-			//	terrain.MoveUp()
-			//}
 			terrain.MoveUp(yDisp - (int(ySlider.Value()*570) - 285))
 		}
 		yDisp = int(ySlider.Value()*570) - 285
@@ -149,14 +144,8 @@ func main() {
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(xSlider.Value()*570)-285 > xDisp {
 			terrain.MoveLeft(xDisp - (int(xSlider.Value()*570) - 285))
-			//for i := 0; i < (int(xSlider.Value()*570)-285)-xDisp; i++ {
-			//	terrain.MoveLeft()
-			//}
 		} else if int(xSlider.Value()*570)-285 < xDisp {
 			terrain.MoveRight(xDisp - (int(xSlider.Value()*570) - 285))
-			//for i := 0; i < xDisp-(int(xSlider.Value()*570)-285); i++ {
-			//	terrain.MoveRight()
-			//}
 		}
 		xDisp = int(xSlider.Value()*570) - 285
 	})
@@ -176,6 +165,7 @@ func main() {
 	// Set background color to gray
 	a.Gls().ClearColor(0.3, 0.3, 0.3, 1.0)
 
+	//a.Gls().BindVertexArray()
 	// Run the application
 	a.Run(func(renderer *renderer.Renderer, deltaTime time.Duration) {
 		a.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
