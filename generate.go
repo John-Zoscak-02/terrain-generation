@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/g3n/engine/geometry"
@@ -60,65 +59,178 @@ func (board *GradientBoard) initialize(gradientWidth, gradientHeight uint32, see
 	board.seed = seed
 }
 
+type Terrain interface {
+	MoveUp(int)
+	MoveDown(int)
+	MoveLeft(int)
+	MoveRight(int)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+//==========================================SimpleTerrain===========================================//
+////////////////////////////////////////////////////////////////////////////////////////////////
+type SimpleTerrain struct {
+	geom   *geometry.Geometry
+	board  GradientBoard
+	width  uint32
+	height uint32
+	xDisp  int
+	yDisp  int
+	m      float32
+}
+
+func (terrain *SimpleTerrain) initialize(board GradientBoard, terrainWidth, terrainHeight uint32, m float32) {
+	terrain.geom = geometry.NewGeometry()
+	terrain.board = board
+	terrain.width = terrainWidth
+	terrain.height = terrainHeight
+	terrain.xDisp = 0
+	terrain.yDisp = 0
+	terrain.m = m
+	terrain.GenerateSurfaceGeometry()
+}
+
 /*
- * This method uses a *Board and will produce a geometry with a unique vertex buffer object (VBO) with surface triangles rendered within calculated terrain heights using the perlin noise algorithm
+ * This method uses a *GradientBoard and will produce a geometry with a unique vertex buffer object (VBO) with surface triangles rendered within calculated terrain heights using the perlin noise algorithm
  * @param terrainWidth The number of terrain heights in the x-direction to generate
  * @param terrainHeight The number of terrain heights in the y-direction to generate
  * @param m The magnitude or multiplier of the terrain produced
  */
-//func (board *GradientBoard) GenerateSurfaceGeometry(terrainWidth, terrainHeight uint16, m float32) *geometry.Geometry {
-//	incY := float32(board.yBounds.size()) / float32(terrainHeight)
-//	incX := float32(board.xBounds.size()) / float32(terrainWidth)
-//	positions := math32.NewArrayF32(0, int(terrainHeight*terrainWidth))
-//	indices := math32.NewArrayU32(0, int((terrainHeight-1)*(terrainWidth-1))*2)
-//	index := uint32(0)
-//	for y := float32(board.yBounds.lower); y <= float32(board.yBounds.upper); y += incY {
-//		for x := float32(board.xBounds.lower); x <= float32(board.xBounds.upper); x += incX {
-//			if (index)%uint32(terrainWidth) != 0 && (index-1)+uint32(terrainWidth)+1 < uint32(terrainHeight)*uint32(terrainWidth) {
-//				indices.Append((index - 1), (index-1)+1, (index-1)+uint32(terrainWidth)+1)
-//				//indices.Append((index - 1), (index-1)+uint32(terrainWidth)+2, (index-1)+uint32(terrainWidth+1))
-//			}
-//			height := float32(perlinNoise(*board, x, y)) * m
-//			fmt.Print(x, ", ", y, " ")
-//			positions.Append(x, y, height, 0, 0, 1)
-//			index++
-//		}
-//		fmt.Println()
-//	}
-//	geom := geometry.NewGeometry()
-//	geom.SetIndices(indices)
-//	geom.AddVBO(gls.NewVBO(positions).
-//		AddAttrib(gls.VertexPosition).
-//		AddAttrib(gls.VertexNormal),
-//	)
-
-//	return geom
-//}
-
-func (board *GradientBoard) GenerateSurfaceGeometry(terrainWidth, terrainHeight uint16, m float32) *geometry.Geometry {
-	incY := float32(board.yBounds.size()) / float32(terrainHeight)
-	incX := float32(board.xBounds.size()) / float32(terrainWidth)
-	positions := math32.NewArrayF32(0, int(terrainHeight*terrainWidth))
-	indices := math32.NewArrayU32(0, int((terrainHeight-1)*(terrainWidth-1))*2)
+func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	positions := math32.NewArrayF32(0, int(terrain.height*terrain.width))
+	indices := math32.NewArrayU32(0, int((terrain.height-1)*(terrain.width-1))*2)
 	index := uint32(0)
-	for y := float32(board.yBounds.lower); y <= float32(board.yBounds.upper); y += incY {
-		for x := float32(board.xBounds.lower); x <= float32(board.xBounds.upper); x += incX {
-			height := float32(perlinNoise(*board, x, y)) * m
+	for y := float32(terrain.board.yBounds.lower); y <= float32(terrain.board.yBounds.upper); y += incY {
+		for x := float32(terrain.board.xBounds.lower); x <= float32(terrain.board.xBounds.upper); x += incX {
+			height := float32(perlinNoise(terrain.board, x, y)) * terrain.m
 			positions.Append(x, y, height, 0, 0, 1)
-			if x+incX <= float32(board.xBounds.upper) && y+incY <= float32(board.yBounds.upper) {
-				indices.Append(index, index+uint32(terrainWidth)+2, index+uint32(terrainHeight)+1)
+			if x+incX <= float32(terrain.board.xBounds.upper) && y+incY <= float32(terrain.board.yBounds.upper) {
+				indices.Append(index, index+uint32(terrain.width)+2, index+uint32(terrain.height)+1)
 			}
 			index++
+			//fmt.Print(fmt.Sprintf("(%2.3f, %2.3f)", x, y))
 		}
-		fmt.Println()
+		//fmt.Println()
 	}
-	geom := geometry.NewGeometry()
-	geom.SetIndices(indices)
-	geom.AddVBO(gls.NewVBO(positions).
+	terrain.geom.SetIndices(indices)
+	terrain.geom.AddVBO(gls.NewVBO(positions).
 		AddAttrib(gls.VertexPosition).
 		AddAttrib(gls.VertexNormal),
 	)
-	return geom
+}
+
+func (terrain *SimpleTerrain) MoveLeft(amount int) {
+	terrain.xDisp = terrain.xDisp + amount
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
+	i := 0
+	queue := make([]float32, -amount+1)
+	front := 0
+	back := 0
+	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+		if i%int(terrain.width) < -amount {
+			front = 0
+			x := vertex.X + (float32(terrain.xDisp) * incX)
+			y := vertex.Y + (float32(terrain.yDisp) * incY)
+			height1 := float32((perlinNoise(terrain.board, x, y)))
+			queue[back] = vertex.Z
+			vertex.Z = height1 * terrain.m
+			back++
+		} else if -amount-1 != front {
+			temp := vertex.Z
+			vertex.Z = queue[front]
+			queue[front] = temp
+			front += 1
+			back = 0
+		} else {
+			temp := vertex.Z
+			vertex.Z = queue[front]
+			queue[front] = temp
+			front = 0
+			back = 0
+		}
+		i++
+		return false
+	})
+}
+
+func (terrain *SimpleTerrain) MoveRight(amount int) {
+	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	terrain.xDisp = terrain.xDisp + amount
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
+	i := 0
+	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+		if (i+amount)%int(terrain.width) < amount {
+			x1 := vertex.X + (float32(terrain.xDisp) * incX)
+			y1 := vertex.Y + (float32(terrain.yDisp) * incY)
+			height := float32(perlinNoise(terrain.board, x1, y1))
+			vertex.Z = height * terrain.m
+		} else {
+			vertex.Z = vbo[((i+amount)*6)+2]
+		}
+		i++
+		return false
+	})
+}
+
+func (terrain *SimpleTerrain) MoveDown(amount int) {
+	terrain.yDisp = terrain.yDisp + amount
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
+	i := 0
+	pivot := 0
+	queue := make([]float32, int(terrain.width+1)*(-amount+1), int(terrain.width+1)*(-amount+1))
+	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+		if i < int(terrain.width)*(-amount) {
+			queue[i] = vertex.Z
+			x1 := vertex.X + (float32(terrain.xDisp) * incX)
+			y1 := vertex.Y + (float32(terrain.yDisp) * incY)
+			height := float32((perlinNoise(terrain.board, x1, y1)))
+			vertex.Z = height * terrain.m
+		} else if pivot < int(terrain.width)*(-amount)-1 {
+			temp := vertex.Z
+			vertex.Z = queue[pivot]
+			queue[pivot] = temp
+			pivot++
+		} else {
+			temp := vertex.Z
+			vertex.Z = queue[pivot]
+			queue[pivot] = temp
+			pivot = 0
+		}
+		i++
+		return false
+	})
+}
+
+func (terrain *SimpleTerrain) MoveUp(amount int) {
+	terrain.yDisp = terrain.yDisp + amount
+	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
+	i := 0
+	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+		//if i%int(terrain.width) == 0 {
+		//	fmt.Println()
+		//}
+		if i >= int(terrain.width)*(int(terrain.height)-amount) {
+			x := vertex.X + (float32(terrain.xDisp) * incX)
+			y := vertex.Y + (float32(terrain.yDisp) * incY)
+			height := float32(perlinNoise(terrain.board, x, y))
+			vertex.Z = height * terrain.m
+			//fmt.Print(" load : ", fmt.Sprintf("i=%5d (%2.3f, %2.3f)", i, x, y))
+		} else {
+			//x := vertex.X + (float32(terrain.xDisp) * incX)
+			//y := vertex.Y + (float32(terrain.yDisp) * incY)
+			vertex.Z = vbo[(i+1)*6+(int(terrain.width)*6*amount)+2]
+			//fmt.Print(" drag ", fmt.Sprintf("i=%5d (%2.3f, %2.3f)", i, x, y))
+		}
+		i++
+		return false
+	})
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,29 +284,11 @@ func (terrain *BipartiteTerrain) GenerateStackedSurfaceGeometry() {
 	indices := math32.NewArrayU32(0, int((terrain.jointHeight-1)*(terrain.jointWidth-1)>>1))
 	index := uint32(0)
 
-	//for y1, y2 := float32(terrain.macro.yBounds.lower), float32(terrain.micro.yBounds.lower); index < uint32(terrain.jointHeight+1)*uint32(terrain.jointWidth+1); y1, y2 = y1+incY1, y2+incY2 {
-	//	for x1, x2 := float32(terrain.macro.xBounds.lower), float32(terrain.micro.xBounds.lower); index%uint32(terrain.jointWidth+1) <= uint32(terrain.jointWidth); x1, x2 = x1+incX1, x2+incX2 {
-	//		if (index)%uint32(terrain.jointWidth+1) != 0 {
-	//			// && (index-1)+uint32(terrain.jointWidth)+1 < uint32(terrain.jointHeight)*uint32(terrain.jointWidth)
-	//			indices.Append((index - 1), (index-1)+1, (index-1)+uint32(terrain.jointWidth)+1)
-	//			//indices.Append((index - 1), (index-1)+uint32(terrain.jointWidth)+2, (index-1)+uint32(terrain.jointWidth+1))
-	//		}
-	//		height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
-	//		height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
-	//		positions.Append(x1, y1, (height1+height2)*terrain.m, 0, 0, 1)
-	//		fmt.Print(index, " ")
-	//		index++
-	//	}
-	//	fmt.Println()
-	//}
 	for y1, y2 := float32(terrain.macro.yBounds.lower), float32(terrain.micro.yBounds.lower); y1 <= float32(terrain.macro.yBounds.upper); y1, y2 = y1+incY1, y2+incY2 {
 		for x1, x2 := float32(terrain.macro.xBounds.lower), float32(terrain.micro.xBounds.lower); x1 <= float32(terrain.macro.xBounds.upper); x1, x2 = x1+incX1, x2+incX2 {
 			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			positions.Append(x1, y1, (height1+height2)*terrain.m, 0, 0, 1)
-			//if x1+incX1 < float32(terrain.macro.xBounds.upper) && y1+incY1 < float32(terrain.macro.yBounds.upper) {
-			//	indices.Append(index, index+uint32(terrain.jointWidth)+1, index+uint32(terrain.jointWidth))
-			//}
 			if index < (uint32(terrain.jointWidth*terrain.jointHeight)-1)-uint32(terrain.jointWidth) && (index+1)%uint32(terrain.jointWidth) != 0 {
 				//indices.Append(index, index+uint32(terrain.jointWidth)+1, index+uint32(terrain.jointWidth))
 				indices.Append(index, index+1, index+uint32(terrain.jointWidth)+1)
@@ -221,14 +315,8 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 	queue := make([]float32, -amount+1)
 	front := 0
 	back := 0
-	//fmt.Println(-amount)
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		//fmt.Print(i % int(terrain.jointWidth+1))
 		if i%int(terrain.jointWidth) < -amount {
-			if i%int(terrain.jointWidth) == 0 {
-				back = 0
-				//fmt.Println()
-			}
 			front = 0
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
@@ -239,19 +327,18 @@ func (terrain *BipartiteTerrain) MoveLeft(amount int) {
 			queue[back] = vertex.Z
 			vertex.Z = (height1 + height2) * terrain.m
 			back++
-			//fmt.Print(" Generat ")
-		} else if back-1 != front {
+		} else if -amount-1 != front {
 			temp := vertex.Z
 			vertex.Z = queue[front]
 			queue[front] = temp
 			front += 1
-			//fmt.Print(" Passing ")
+			back = 0
 		} else {
 			temp := vertex.Z
 			vertex.Z = queue[front]
 			queue[front] = temp
 			front = 0
-			//fmt.Print(" Returns ")
+			back = 0
 		}
 		i++
 		return false
@@ -291,15 +378,10 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 	incY2 := float32(terrain.micro.yBounds.size()) / float32(terrain.jointHeight)
 	i := 0
 	pivot := 0
-	line := make([]float32, int(terrain.jointWidth+1)*(-amount+1), int(terrain.jointWidth+1)*(-amount+1))
-	//fmt.Println(-amount)
+	queue := make([]float32, int(terrain.jointWidth+1)*(-amount+1), int(terrain.jointWidth+1)*(-amount+1))
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		//fmt.Print(i % int(terrain.jointWidth+1))
-		//if i%int(terrain.jointWidth+1) == 0 {
-		//	fmt.Println()
-		//}
 		if i < int(terrain.jointWidth)*(-amount) {
-			line[i] = vertex.Z
+			queue[i] = vertex.Z
 			x1 := vertex.X + (float32(terrain.xDisp) * incX1)
 			x2 := (x1 / incX1) * incX2
 			y1 := vertex.Y + (float32(terrain.yDisp) * incY1)
@@ -307,19 +389,16 @@ func (terrain *BipartiteTerrain) MoveDown(amount int) {
 			height1 := float32((perlinNoise(terrain.macro, x1, y1)) * terrain.prop)
 			height2 := float32((perlinNoise(terrain.micro, x2, y2)) * (1 - terrain.prop))
 			vertex.Z = (height1 + height2) * terrain.m
-			//fmt.Print(" Generat ")
 		} else if pivot < int(terrain.jointWidth)*(-amount)-1 {
 			temp := vertex.Z
-			vertex.Z = line[pivot]
-			line[pivot] = temp
+			vertex.Z = queue[pivot]
+			queue[pivot] = temp
 			pivot++
-			//fmt.Print(" Passing ")
 		} else {
 			temp := vertex.Z
-			vertex.Z = line[pivot]
-			line[pivot] = temp
+			vertex.Z = queue[pivot]
+			queue[pivot] = temp
 			pivot = 0
-			//fmt.Print(" Returns ")
 		}
 		i++
 		return false
