@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/g3n/engine/app"
@@ -18,38 +22,24 @@ import (
 	"github.com/g3n/engine/window"
 )
 
-// Make the terrain widths odd numbers
-// Some terrain sizes do not work because the gradients will not divide rationally into them. It will be clear after running if the terrain/gradient sizes failed:
-//    - A diagonal section of the terrain will not be rendered
-//    - An extra, large gray triangle will be rendered in the topside of the terrain.
-const TERRAIN_WIDTH = 191
-const TERRAIN_HEIGHT = 191
+type TerrainMap struct {
+	typ uint8
+	// Gradient widths need to be odd numbers
+	gradient_width_b1  uint32
+	gradient_height_b1 uint32
+	gradient_width_b2  uint32
+	gradient_height_b2 uint32
+	// Seed for the macro gradient board
+	seed1 int32
+	// Seed for the micro gradient board
+	seed2 int32
+	// Magnitude / Amplitude of the terrain
+	m float32
+	// The significiance of macro and micro componenets of the bipartite terrain
+	prop float32
+}
 
-// Gradient widths need to be odd numbers
-const GRADIENT_WIDTH_B1 = 5
-const GRADIENT_HEIGHT_B1 = 5
-const GRADIENT_WIDTH_B2 = 27
-const GRADIENT_HEIGHT_B2 = 27
-
-// Magnitude / Amplitude of the terrain
-const M = 1.4
-
-// The significiance of macro and micro componenets of the bipartite terrain
-const PROPORTION = 0.91
-
-// Seed for the macro gradient board
-const SEED_1 = 43
-
-// Seed for the micro gradient board
-const SEED_2 = 97
-
-func main() {
-	//Initializing the gradient boards to add to the bipartite terrain
-	var macro GradientBoard
-	var micro GradientBoard
-	macro.initialize(GRADIENT_WIDTH_B1, GRADIENT_HEIGHT_B1, SEED_1)
-	micro.initialize(GRADIENT_WIDTH_B2, GRADIENT_HEIGHT_B2, SEED_2)
-
+func prepareScene(cam_multipliler uint32) (*app.Application, *core.Node, *camera.Camera) {
 	// Create application and scene
 	a := app.App()
 	scene := core.NewNode()
@@ -59,9 +49,9 @@ func main() {
 
 	// Create perspective camera
 	cam := camera.New(1)
-	camPosition := float32(GRADIENT_HEIGHT_B1) * 0.30
-	cam.SetPosition(-camPosition/2.0, -camPosition*2, camPosition*2.0)
-	cam.LookAt(&math32.Vector3{0, 0, -1}, &math32.Vector3{0, 0, 1})
+	camPosition := float32(3.0)
+	cam.SetPosition(-camPosition/2, -camPosition*2, camPosition*2)
+	cam.LookAt(&math32.Vector3{0, 0, -1.2}, &math32.Vector3{0, 0, 1})
 	scene.Add(cam)
 
 	// Set up orbit control for the camera
@@ -78,26 +68,10 @@ func main() {
 	a.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
-	//geom := board1.GenerateSurfaceGeometry(xb, yb, 1.2)
-	terrain := new(BipartiteTerrain)
-	terrain.initialize(macro, micro, TERRAIN_WIDTH, TERRAIN_HEIGHT, M, PROPORTION)
-	mat := material.NewStandard(math32.NewColor("darkgrey"))
-	mat.SetTransparent(false)
-	mat.SetShader()
-	fmt.Println(mat.Transparent())
-	mesh := graphic.NewMesh(terrain.geom, mat)
-	scene.Add(mesh)
+	return a, scene, cam
+}
 
-	// water plane
-	//waterGeometry := geometry.NewPlane(GRADIENT_WIDTH_B1-1, GRADIENT_HEIGHT_B1-1)
-	//waterColor := material.NewStandard(math32.NewColor("darkblue"))
-	//water := graphic.NewMesh(waterGeometry, waterColor)
-	//waterGeometry.OperateOnVertices(func(vertex *math32.Vector3) bool {
-	//	vertex.Z = -0.2 * M
-	//	return false
-	//})
-	//scene.Add(water)
-
+func completeScene(a *app.Application, scene *core.Node, terrain Terrain, cam *camera.Camera) {
 	// Variables to keep track of the current dispacement from the terrain origin
 	xDisp := 0
 	yDisp := 0
@@ -121,14 +95,8 @@ func main() {
 	ySlider.SetValue(0.5)
 	ySlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(ySlider.Value()*570)-285 > yDisp {
-			//for i := 0; i < (int(ySlider.Value()*570)-285)-yDisp; i++ {
-			//	terrain.MoveDown()
-			//}
 			terrain.MoveDown(yDisp - (int(ySlider.Value()*570) - 285))
 		} else if int(ySlider.Value()*570)-285 < yDisp {
-			//for i := 0; i < yDisp-(int(ySlider.Value()*570)-285); i++ {
-			//	terrain.MoveUp()
-			//}
 			terrain.MoveUp(yDisp - (int(ySlider.Value()*570) - 285))
 		}
 		yDisp = int(ySlider.Value()*570) - 285
@@ -143,18 +111,22 @@ func main() {
 	xSlider.Subscribe(gui.OnChange, func(name string, ev interface{}) {
 		if int(xSlider.Value()*570)-285 > xDisp {
 			terrain.MoveLeft(xDisp - (int(xSlider.Value()*570) - 285))
-			//for i := 0; i < (int(xSlider.Value()*570)-285)-xDisp; i++ {
-			//	terrain.MoveLeft()
-			//}
 		} else if int(xSlider.Value()*570)-285 < xDisp {
 			terrain.MoveRight(xDisp - (int(xSlider.Value()*570) - 285))
-			//for i := 0; i < xDisp-(int(xSlider.Value()*570)-285); i++ {
-			//	terrain.MoveRight()
-			//}
 		}
 		xDisp = int(xSlider.Value()*570) - 285
 	})
 	scene.Add(xSlider)
+
+	// water plane
+	//waterGeometry := geometry.NewPlane(GRADIENT_WIDTH_B1-1, GRADIENT_HEIGHT_B1-1)
+	//waterColor := material.NewStandard(math32.NewColor("darkblue"))
+	//water := graphic.NewMesh(waterGeometry, waterColor)
+	//waterGeometry.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	//	vertex.Z = -0.2 * M
+	//	return false
+	//})
+	//scene.Add(water)
 
 	// Create and add lights to the scene
 	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.5))
@@ -175,4 +147,93 @@ func main() {
 		a.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
 		renderer.Render(scene, cam)
 	})
+}
+
+func renderSimpleTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight uint32) {
+	var board GradientBoard
+	board.initialize(terrainMap.gradient_width_b1, terrainMap.gradient_height_b1, terrainMap.seed1)
+
+	a, scene, cam := prepareScene(terrainMap.gradient_height_b1)
+
+	terrain := new(SimpleTerrain)
+	terrain.initialize(board, terrainWidth, terrainHeight, terrainMap.m)
+	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	mesh := graphic.NewMesh(terrain.geom, mat)
+	scene.Add(mesh)
+
+	completeScene(a, scene, terrain, cam)
+}
+
+func renderBipartiteTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight uint32) {
+	var macro GradientBoard
+	var micro GradientBoard
+	macro.initialize(terrainMap.gradient_width_b1, terrainMap.gradient_height_b1, terrainMap.seed1)
+	micro.initialize(terrainMap.gradient_width_b2, terrainMap.gradient_height_b2, terrainMap.seed2)
+
+	a, scene, cam := prepareScene(terrainMap.gradient_height_b1)
+
+	terrain := new(BipartiteTerrain)
+	terrain.initialize(macro, micro, terrainWidth, terrainHeight, terrainMap.m, terrainMap.prop)
+	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	mesh := graphic.NewMesh(terrain.geom, mat)
+	scene.Add(mesh)
+
+	completeScene(a, scene, terrain, cam)
+}
+
+// Make the terrain widths (passed as command line arguements) odd numbers
+// Some terrain sizes do not work because the gradients will not divide rationally into them(within the specificity of float32). It will be clear after running if the terrain/gradient sizes failed:
+//    - A diagonal section of the terrain will not be rendered
+// 	  and/or
+//    - An extra, large gray triangle will be rendered in the topside of the terrain.
+func main() {
+	if len(os.Args[1:]) == 3 {
+		var i interface{}
+		file, err1 := ioutil.ReadFile(fmt.Sprintf("maps/%s.json", os.Args[1]))
+		if err1 != nil {
+			fmt.Println("Error! Could not read that file")
+			return
+		}
+		err2 := json.Unmarshal(file, &i)
+		if err2 != nil {
+			fmt.Println("Error! That json file could not be deconstructed into a terrain map")
+			return
+		}
+
+		terrainMap := TerrainMap{}
+		m := i.(map[string]interface{})
+		for k, v := range m {
+			switch k {
+			case "typ":
+				terrainMap.typ = uint8(v.(float64))
+			case "gradient_width_b1":
+				terrainMap.gradient_width_b1 = uint32(v.(float64))
+			case "gradient_height_b1":
+				terrainMap.gradient_height_b1 = uint32(v.(float64))
+			case "gradient_width_b2":
+				terrainMap.gradient_width_b2 = uint32(v.(float64))
+			case "gradient_height_b2":
+				terrainMap.gradient_height_b2 = uint32(v.(float64))
+			case "seed1":
+				terrainMap.seed1 = int32(v.(float64))
+			case "seed2":
+				terrainMap.seed2 = int32(v.(float64))
+			case "m":
+				terrainMap.m = float32(v.(float64))
+			case "prop":
+				terrainMap.prop = float32(v.(float64))
+			}
+		}
+
+		terrainWidth, _ := strconv.ParseUint(os.Args[2], 10, 32)
+		terrainHeight, _ := strconv.ParseUint(os.Args[3], 10, 32)
+
+		if terrainMap.typ == 1 {
+			renderSimpleTerrain(terrainMap, uint32(terrainWidth), uint32(terrainHeight))
+		} else if terrainMap.typ == 2 {
+			renderBipartiteTerrain(terrainMap, uint32(terrainWidth), uint32(terrainHeight))
+		} else {
+			fmt.Println("Had problems reading json or the type of map is not valid")
+		}
+	}
 }
