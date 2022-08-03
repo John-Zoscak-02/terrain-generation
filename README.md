@@ -7,6 +7,7 @@ This program is a progressive perlin noise terrain generator written in golang u
 ## How to use 
 
  - Make sure that your system can run g3n, dependancies and instructions can be found here: https://github.com/g3n/engine
+ - Necessary audio DLLs for windows are in /audiodlls 
  - Navigate to /Terrain-Generation and execute:
  $ ./run.sh <mapname> <terrain_width> <terrain_height>
     - mapname: The program will navigate to the /maps directory in the project and will search for <mapname>.json to render it
