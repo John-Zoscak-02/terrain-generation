@@ -181,9 +181,10 @@ func renderBipartiteTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight u
 	completeScene(a, scene, terrain, cam)
 }
 
-// Make the terrain widths odd numbers
-// Some terrain sizes do not work because the gradients will not divide rationally into them. It will be clear after running if the terrain/gradient sizes failed:
+// Make the terrain widths (passed as command line arguements) odd numbers
+// Some terrain sizes do not work because the gradients will not divide rationally into them(within the specificity of float32). It will be clear after running if the terrain/gradient sizes failed:
 //    - A diagonal section of the terrain will not be rendered
+// 	  and/or
 //    - An extra, large gray triangle will be rendered in the topside of the terrain.
 func main() {
 	if len(os.Args[1:]) == 3 {
