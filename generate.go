@@ -97,8 +97,8 @@ func (terrain *SimpleTerrain) initialize(board GradientBoard, terrainWidth, terr
  * @param m The magnitude or multiplier of the terrain produced
  */
 func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
-	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
-	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
+	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height-1)
+	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width-1)
 	positions := math32.NewArrayF32(0, int(terrain.height*terrain.width))
 	indices := math32.NewArrayU32(0, int((terrain.height-1)*(terrain.width-1))*2)
 	index := uint32(0)
@@ -107,10 +107,10 @@ func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
 			height := float32(perlinNoise(terrain.board, x, y)) * terrain.m
 			positions.Append(x, y, height, 0, 0, 1)
 			if x+incX <= float32(terrain.board.xBounds.upper) && y+incY <= float32(terrain.board.yBounds.upper) {
-				indices.Append(index, index+uint32(terrain.width)+2, index+uint32(terrain.height)+1)
+				indices.Append(index, index+uint32(terrain.width)+1, index+uint32(terrain.height))
 			}
+			//fmt.Print(fmt.Sprintf("i=%d (%2.3f, %2.3f)", index, x, y))
 			index++
-			//fmt.Print(fmt.Sprintf("(%2.3f, %2.3f)", x, y))
 		}
 		//fmt.Println()
 	}
@@ -213,20 +213,13 @@ func (terrain *SimpleTerrain) MoveUp(amount int) {
 	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
 	i := 0
 	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
-		//if i%int(terrain.width) == 0 {
-		//	fmt.Println()
-		//}
 		if i >= int(terrain.width)*(int(terrain.height)-amount) {
 			x := vertex.X + (float32(terrain.xDisp) * incX)
 			y := vertex.Y + (float32(terrain.yDisp) * incY)
 			height := float32(perlinNoise(terrain.board, x, y))
 			vertex.Z = height * terrain.m
-			//fmt.Print(" load : ", fmt.Sprintf("i=%5d (%2.3f, %2.3f)", i, x, y))
 		} else {
-			//x := vertex.X + (float32(terrain.xDisp) * incX)
-			//y := vertex.Y + (float32(terrain.yDisp) * incY)
-			vertex.Z = vbo[(i+1)*6+(int(terrain.width)*6*amount)+2]
-			//fmt.Print(" drag ", fmt.Sprintf("i=%5d (%2.3f, %2.3f)", i, x, y))
+			vertex.Z = vbo[(i+(int(terrain.width)*amount))*6+2]
 		}
 		i++
 		return false
