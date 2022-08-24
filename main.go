@@ -1,9 +1,9 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -21,6 +21,9 @@ import (
 	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/window"
 )
+
+//go:embed maps/*
+var file embed.FS
 
 type TerrainMap struct {
 	typ uint8
@@ -49,8 +52,8 @@ func prepareScene(cam_multipliler uint32) (*app.Application, *core.Node, *camera
 
 	// Create perspective camera
 	cam := camera.New(1)
-	camPosition := float32(3.0)
-	cam.SetPosition(-camPosition/2, -camPosition*2, camPosition*2)
+	camPosition := float32(cam_multipliler)
+	cam.SetPosition(-camPosition/2, -camPosition*1.7, camPosition*1.7)
 	cam.LookAt(&math32.Vector3{0, 0, -1.2}, &math32.Vector3{0, 0, 1})
 	scene.Add(cam)
 
@@ -78,18 +81,18 @@ func completeScene(a *app.Application, scene *core.Node, terrain Terrain, cam *c
 
 	// Label for Y slider
 	sliderYTitle := gui.NewLabel("Y")
-	sliderYTitle.SetPosition(5, 3)
+	sliderYTitle.SetPosition(8, 3)
 	//sliderYTitle.SetSize(5.0, 5.0)
 	scene.Add(sliderYTitle)
 
 	// Label for X slider
 	sliderXTitle := gui.NewLabel("X")
-	sliderXTitle.SetPosition(15, 3)
+	sliderXTitle.SetPosition(18, 3)
 	//sliderXTitle.SetSize(5.0, 5.0)
 	scene.Add(sliderXTitle)
 
 	// Y Slider for changing the rendered terrain in the Y direction
-	ySlider := gui.NewVScrollBar(5, 570)
+	ySlider := gui.NewVScrollBar(8, 570)
 	ySlider.SetPosition(8, 20)
 	ySlider.SetScale(0, 570, 0)
 	ySlider.SetValue(0.5)
@@ -104,7 +107,7 @@ func completeScene(a *app.Application, scene *core.Node, terrain Terrain, cam *c
 	scene.Add(ySlider)
 
 	// X Slider for changing the rendered terrain in the X direction
-	xSlider := gui.NewVScrollBar(5, 570)
+	xSlider := gui.NewVScrollBar(8, 570)
 	xSlider.SetPosition(18, 20)
 	xSlider.SetScale(0, 570, 0)
 	xSlider.SetValue(0.5)
@@ -153,7 +156,7 @@ func renderSimpleTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight uint
 	var board GradientBoard
 	board.initialize(terrainMap.gradient_width_b1, terrainMap.gradient_height_b1, terrainMap.seed1)
 
-	a, scene, cam := prepareScene(terrainMap.gradient_height_b1)
+	a, scene, cam := prepareScene(terrainMap.gradient_height_b1 / 2)
 
 	terrain := new(SimpleTerrain)
 	terrain.initialize(board, terrainWidth, terrainHeight, terrainMap.m)
@@ -170,7 +173,7 @@ func renderBipartiteTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight u
 	macro.initialize(terrainMap.gradient_width_b1, terrainMap.gradient_height_b1, terrainMap.seed1)
 	micro.initialize(terrainMap.gradient_width_b2, terrainMap.gradient_height_b2, terrainMap.seed2)
 
-	a, scene, cam := prepareScene(terrainMap.gradient_height_b1)
+	a, scene, cam := prepareScene(terrainMap.gradient_height_b1 / 2)
 
 	terrain := new(BipartiteTerrain)
 	terrain.initialize(macro, micro, terrainWidth, terrainHeight, terrainMap.m, terrainMap.prop)
@@ -189,12 +192,12 @@ func renderBipartiteTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight u
 func main() {
 	if len(os.Args[1:]) == 3 {
 		var i interface{}
-		file, err1 := ioutil.ReadFile(fmt.Sprintf("maps/%s.json", os.Args[1]))
+		data, err1 := file.ReadFile(fmt.Sprintf("maps/%s.json", os.Args[1]))
 		if err1 != nil {
 			fmt.Println("Error! Could not read that file")
 			return
 		}
-		err2 := json.Unmarshal(file, &i)
+		err2 := json.Unmarshal(data, &i)
 		if err2 != nil {
 			fmt.Println("Error! That json file could not be deconstructed into a terrain map")
 			return
@@ -235,5 +238,52 @@ func main() {
 		} else {
 			fmt.Println("Had problems reading json or the type of map is not valid")
 		}
+	} else if len(os.Args[1:]) == 1 {
+		var i interface{}
+		data, err1 := file.ReadFile(fmt.Sprintf("%s.json", os.Args[1]))
+		if err1 != nil {
+			fmt.Println("Error! Could not read that file")
+			return
+		}
+		err2 := json.Unmarshal(data, &i)
+		if err2 != nil {
+			fmt.Println("Error! That json file could not be deconstructed into a terrain map")
+			return
+		}
+
+		terrainMap := TerrainMap{}
+		m := i.(map[string]interface{})
+		for k, v := range m {
+			switch k {
+			case "typ":
+				terrainMap.typ = uint8(v.(float64))
+			case "gradient_width_b1":
+				terrainMap.gradient_width_b1 = uint32(v.(float64))
+			case "gradient_height_b1":
+				terrainMap.gradient_height_b1 = uint32(v.(float64))
+			case "gradient_width_b2":
+				terrainMap.gradient_width_b2 = uint32(v.(float64))
+			case "gradient_height_b2":
+				terrainMap.gradient_height_b2 = uint32(v.(float64))
+			case "seed1":
+				terrainMap.seed1 = int32(v.(float64))
+			case "seed2":
+				terrainMap.seed2 = int32(v.(float64))
+			case "m":
+				terrainMap.m = float32(v.(float64))
+			case "prop":
+				terrainMap.prop = float32(v.(float64))
+			}
+		}
+
+		if terrainMap.typ == 1 {
+			renderSimpleTerrain(terrainMap, 124, 124)
+		} else if terrainMap.typ == 2 {
+			renderBipartiteTerrain(terrainMap, 124, 124)
+		} else {
+			fmt.Println("Had problems reading json or the type of map is not valid")
+		}
+	} else {
+		fmt.Println("Error! Need to pass in 1 or 3 command line arguements")
 	}
 }
