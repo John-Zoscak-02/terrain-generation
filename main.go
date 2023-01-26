@@ -161,7 +161,9 @@ func renderSimpleTerrain(terrainMap TerrainMap, terrainWidth, terrainHeight uint
 	terrain := new(SimpleTerrain)
 	terrain.initialize(board, terrainWidth, terrainHeight, terrainMap.m)
 	mat := material.NewStandard(math32.NewColor("darkgrey"))
+	fmt.Println(terrain.vbo)
 	for i := range terrain.geoms {
+		fmt.Println(terrain.geoms[i].Indices())
 		scene.Add(graphic.NewMesh(terrain.geoms[i], mat))
 	}
 

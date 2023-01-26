@@ -162,7 +162,7 @@ func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
 	for y := float32(terrain.board.yBounds.lower); y <= float32(terrain.board.yBounds.upper); y += incY {
 		for x := float32(terrain.board.xBounds.lower); x <= float32(terrain.board.xBounds.upper); x += incX {
 			height := float32(terrain.board.perlinNoise(x, y)) * terrain.m
-			terrain.vbo.Buffer().AppendVector3(math32.NewVector3(x, y, height))
+			terrain.vbo.Buffer().Append(x, y, height)
 			if x+incX <= float32(terrain.board.xBounds.upper) && y+incY <= float32(terrain.board.yBounds.upper) {
 				terrain.geoms[index] = geometry.NewGeometry()
 				indices := math32.NewArrayU32(0, 3)
