@@ -113,7 +113,9 @@ type Terrain interface {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 type SimpleTerrain struct {
 	// The surface geometry of this terrain
-	geom *geometry.Geometry
+	geoms []*geometry.Geometry
+	// The shared vbo
+	vbo *gls.VBO
 	// The gradient board of this terrain used by the perlin noise generation
 	board GradientBoard
 	// The number of triangles to be rendered in the x direction of the terrain's geometry
@@ -135,7 +137,7 @@ type SimpleTerrain struct {
  * @param m The magnitude of the terrain
  */
 func (terrain *SimpleTerrain) initialize(board GradientBoard, terrainWidth, terrainHeight uint32, m float32) {
-	terrain.geom = geometry.NewGeometry()
+	terrain.geoms = make([]*geometry.Geometry, terrainWidth*terrainHeight)
 	terrain.board = board
 	terrain.width = terrainWidth
 	terrain.height = terrainHeight
@@ -155,25 +157,27 @@ func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
 	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height-1)
 	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width-1)
 	positions := math32.NewArrayF32(0, int(terrain.height*terrain.width))
-	indices := math32.NewArrayU32(0, int((terrain.height-1)*(terrain.width-1))*2)
 	index := uint32(0)
 	for y := float32(terrain.board.yBounds.lower); y <= float32(terrain.board.yBounds.upper); y += incY {
 		for x := float32(terrain.board.xBounds.lower); x <= float32(terrain.board.xBounds.upper); x += incX {
 			height := float32(terrain.board.perlinNoise(x, y)) * terrain.m
 			positions.Append(x, y, height, 0, 0, 1)
 			if x+incX <= float32(terrain.board.xBounds.upper) && y+incY <= float32(terrain.board.yBounds.upper) {
+				indices := math32.NewArrayU32(0, 3)
 				indices.Append(index, index+uint32(terrain.width)+1, index+uint32(terrain.height))
+				terrain.geoms[index].SetIndices(indices)
 			}
 			//fmt.Print(fmt.Sprintf("i=%d (%2.3f, %2.3f)", index, x, y))
 			index++
 		}
 		//fmt.Println()
 	}
-	terrain.geom.SetIndices(indices)
-	terrain.geom.AddVBO(gls.NewVBO(positions).
-		AddAttrib(gls.VertexPosition).
-		AddAttrib(gls.VertexNormal),
-	)
+	terrain.vbo = gls.NewVBO(positions).
+		AddAttrib(gls.VertexPosition)
+	for i := range terrain.geoms {
+		terrain.geoms[i].AddVBO(terrain.vbo)
+	}
+
 }
 
 /*
@@ -187,7 +191,7 @@ func (terrain *SimpleTerrain) MoveLeft(amount int) {
 	queue := make([]float32, -amount+1)
 	front := 0
 	back := 0
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.vbo.OperateOnVectors3(gls.VertexPosition, func(vertex *math32.Vector3) bool {
 		if i%int(terrain.width) < -amount {
 			front = 0
 			x := vertex.X + (float32(terrain.xDisp) * incX)
@@ -218,12 +222,12 @@ func (terrain *SimpleTerrain) MoveLeft(amount int) {
  * Iterates over each vertex in the VBO of the Terrain's geometry and will determine new terrain surface heights when displaced from the current configuration by the amount parameter in the +x direction
  */
 func (terrain *SimpleTerrain) MoveRight(amount int) {
-	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	vbo := terrain.vbo.Buffer().ToFloat32()
 	terrain.xDisp = terrain.xDisp + amount
 	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
 	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
 	i := 0
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.vbo.OperateOnVectors3(gls.VertexPosition, func(vertex *math32.Vector3) bool {
 		if (i+amount)%int(terrain.width) < amount {
 			x := vertex.X + (float32(terrain.xDisp) * incX)
 			y := vertex.Y + (float32(terrain.yDisp) * incY)
@@ -247,7 +251,7 @@ func (terrain *SimpleTerrain) MoveDown(amount int) {
 	i := 0
 	pivot := 0
 	queue := make([]float32, int(terrain.width+1)*(-amount+1))
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.vbo.OperateOnVectors3(gls.VertexPosition, func(vertex *math32.Vector3) bool {
 		if i < int(terrain.width)*(-amount) {
 			queue[i] = vertex.Z
 			x := vertex.X + (float32(terrain.xDisp) * incX)
@@ -275,11 +279,11 @@ func (terrain *SimpleTerrain) MoveDown(amount int) {
  */
 func (terrain *SimpleTerrain) MoveUp(amount int) {
 	terrain.yDisp = terrain.yDisp + amount
-	vbo := terrain.geom.GetGeometry().VBO(gls.VertexPosition).Buffer().ToFloat32()
+	vbo := terrain.vbo.Buffer().ToFloat32()
 	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width)
 	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height)
 	i := 0
-	terrain.geom.OperateOnVertices(func(vertex *math32.Vector3) bool {
+	terrain.vbo.OperateOnVectors3(gls.VertexPosition, func(vertex *math32.Vector3) bool {
 		if i >= int(terrain.width)*(int(terrain.height)-amount) {
 			x := vertex.X + (float32(terrain.xDisp) * incX)
 			y := vertex.Y + (float32(terrain.yDisp) * incY)
