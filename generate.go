@@ -137,7 +137,7 @@ type SimpleTerrain struct {
  * @param m The magnitude of the terrain
  */
 func (terrain *SimpleTerrain) initialize(board GradientBoard, terrainWidth, terrainHeight uint32, m float32) {
-	terrain.geoms = make([]*geometry.Geometry, terrainWidth*terrainHeight)
+	terrain.geoms = make([]*geometry.Geometry, (terrainWidth-1)*(terrainHeight-1))
 	terrain.board = board
 	terrain.width = terrainWidth
 	terrain.height = terrainHeight
@@ -156,28 +156,36 @@ func (terrain *SimpleTerrain) initialize(board GradientBoard, terrainWidth, terr
 func (terrain *SimpleTerrain) GenerateSurfaceGeometry() {
 	incY := float32(terrain.board.yBounds.size()) / float32(terrain.height-1)
 	incX := float32(terrain.board.xBounds.size()) / float32(terrain.width-1)
-	positions := math32.NewArrayF32(0, int(terrain.height*terrain.width))
+	terrain.vbo = gls.NewVBO(math32.NewArrayF32(0, int(terrain.height*terrain.width))).
+		AddAttrib(gls.VertexPosition)
 	index := uint32(0)
 	for y := float32(terrain.board.yBounds.lower); y <= float32(terrain.board.yBounds.upper); y += incY {
 		for x := float32(terrain.board.xBounds.lower); x <= float32(terrain.board.xBounds.upper); x += incX {
 			height := float32(terrain.board.perlinNoise(x, y)) * terrain.m
-			positions.Append(x, y, height, 0, 0, 1)
+			terrain.vbo.Buffer().AppendVector3(math32.NewVector3(x, y, height))
 			if x+incX <= float32(terrain.board.xBounds.upper) && y+incY <= float32(terrain.board.yBounds.upper) {
+				terrain.geoms[index] = geometry.NewGeometry()
 				indices := math32.NewArrayU32(0, 3)
 				indices.Append(index, index+uint32(terrain.width)+1, index+uint32(terrain.height))
 				terrain.geoms[index].SetIndices(indices)
+				terrain.geoms[index].AddVBO(terrain.vbo)
+				//fmt.Println(indices)
+				index++
 			}
-			//fmt.Print(fmt.Sprintf("i=%d (%2.3f, %2.3f)", index, x, y))
-			index++
+			//fmt.Print(fmt.Sprintf("i=%d (%2.3f, %2.3f, %2.3f)", index, x, y, height))
 		}
 		//fmt.Println()
 	}
-	terrain.vbo = gls.NewVBO(positions).
-		AddAttrib(gls.VertexPosition)
-	for i := range terrain.geoms {
-		terrain.geoms[i].AddVBO(terrain.vbo)
-	}
 
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.vbo.Buffer().ToFloat32()[0], terrain.vbo.Buffer().ToFloat32()[1], terrain.vbo.Buffer().ToFloat32()[2]))
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[0], terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[1], terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[2]))
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[0], terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[1], terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[2]))
+
+	//terrain.vbo.Buffer().SetVector3(0, math32.NewVector3(1.0, 1.0, 1.0))
+
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.vbo.Buffer().ToFloat32()[0], terrain.vbo.Buffer().ToFloat32()[1], terrain.vbo.Buffer().ToFloat32()[2]))
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[0], terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[1], terrain.geoms[0].VBO(gls.VertexPosition).Buffer().ToFloat32()[2]))
+	//fmt.Println(fmt.Sprintf("(%2.3f, %2.3f, %2.3f)", terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[0], terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[1], terrain.geoms[1].VBO(gls.VertexPosition).Buffer().ToFloat32()[2]))
 }
 
 /*
